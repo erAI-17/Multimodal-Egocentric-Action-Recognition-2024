@@ -127,7 +127,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
         ##################################################################
         average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) / float(self.num_clips)
         if average_duration > 0:
-            start_indices = np.array([int(average_duration / 2.0 + average_duration * x) for x in range(self.num_segments)])
+            start_indices = np.array([int(average_duration / 2.0 + average_duration * x) for x in range(self.num_clips)])
         else:
             start_indices = np.zeros((self.num_frames_per_clip,))
             
