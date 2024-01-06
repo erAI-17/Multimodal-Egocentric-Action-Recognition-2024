@@ -87,29 +87,30 @@ class EpicKitchensDataset(data.Dataset, ABC):
         if average_duration > 0:
             start_indices = np.multiply(list(range(self.num_clips)), average_duration) + randint(average_duration, size=self.num_clips)
         else:
-            start_indices = np.zeros((self.num_frames_per_clip,))
+            start_indices = np.zeros((self.num_frames_per_clip[modality],))
         
         indices=[] 
-        #*DENSE SAMPLING: subsequent frames
-        for start_index in start_indices:
-            frame_index = int(start_index)
-            # load self.num_frames_per_clip CONSECUTIVE frames
-            for _ in range(self.num_frames_per_clip):
-                indices.append(frame_index)
-                
-                if frame_index < record.end_frame:
-                    frame_index += 1
-
-        #*UNIFORM SAMPLING: equidistant frames (by self.stride)
-        for start_index in start_indices:
-            frame_index = int(start_index)
-            # load self.num_frames_per_clip EQUIDISTANT frames (by stride)
-            for _ in range(self.num_frames_per_clip):
-                indices.append(frame_index)
-                
-                if frame_index < record.end_frame:
-                    frame_index += self.stride
+        if self.dense_sampling[modality]:
+            #*DENSE SAMPLING: subsequent frames
+            for start_index in start_indices:
+                frame_index = int(start_index)
+                # load self.num_frames_per_clip[modality] CONSECUTIVE frames
+                for _ in range(self.num_frames_per_clip[modality]):
+                    indices.append(frame_index)
                     
+                    if frame_index < record.end_frame:
+                        frame_index += 1
+        else:
+            #*UNIFORM SAMPLING: equidistant frames (by self.stride)
+            for start_index in start_indices:
+                frame_index = int(start_index)
+                # load self.num_frames_per_clip[modality] EQUIDISTANT frames (by stride)
+                for _ in range(self.num_frames_per_clip[modality]):
+                    indices.append(frame_index)
+                    
+                    if frame_index < record.end_frame:
+                        frame_index += self.stride
+                        
         return indices
         
         
@@ -129,28 +130,29 @@ class EpicKitchensDataset(data.Dataset, ABC):
         if average_duration > 0:
             start_indices = np.array([int(average_duration / 2.0 + average_duration * x) for x in range(self.num_clips)])
         else:
-            start_indices = np.zeros((self.num_frames_per_clip,))
+            start_indices = np.zeros((self.num_frames_per_clip[modality],))
             
         indices=[] 
-        #*DENSE SAMPLING: subsequent frames
-        for start_index in start_indices:
-            frame_index = int(start_index)
-            # load self.num_frames_per_clip CONSECUTIVE frames
-            for _ in range(self.num_frames_per_clip):
-                indices.append(frame_index)
-                
-                if frame_index < record.end_frame:
-                    frame_index += 1
-
-        #*UNIFORM SAMPLING: equidistant frames (by self.stride)
-        for start_index in start_indices:
-            frame_index = int(start_index)
-            # load self.num_frames_per_clip EQUIDISTANT frames (by stride)
-            for _ in range(self.num_frames_per_clip):
-                indices.append(frame_index)
-                
-                if frame_index < record.end_frame:
-                    frame_index += self.stride
+        if self.dense_sampling[modality]:
+            #*DENSE SAMPLING: subsequent frames
+            for start_index in start_indices:
+                frame_index = int(start_index)
+                # load self.num_frames_per_clip[modality] CONSECUTIVE frames
+                for _ in range(self.num_frames_per_clip[modality]):
+                    indices.append(frame_index)
+                    
+                    if frame_index < record.end_frame:
+                        frame_index += 1
+        else:
+            #*UNIFORM SAMPLING: equidistant frames (by self.stride)
+            for start_index in start_indices:
+                frame_index = int(start_index)
+                # load self.num_frames_per_clip[modality] EQUIDISTANT frames (by stride)
+                for _ in range(self.num_frames_per_clip[modality]):
+                    indices.append(frame_index)
+                    
+                    if frame_index < record.end_frame:
+                        frame_index += self.stride
         
         return indices
 
