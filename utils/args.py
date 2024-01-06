@@ -27,7 +27,7 @@ def add_paths():
 conf_path = os.path.join(os.path.dirname(__file__), '../configs')
 
 # Retrieve the default config
-args = OmegaConf.load(os.path.join(conf_path, "default.yaml"))
+args = OmegaConf.load(os.path.join(conf_path, "I3D_save_feat.yaml")) #I3D_save_feat.yaml  or #default.yaml
 
 # Read the cli args
 cli_args = OmegaConf.from_cli()

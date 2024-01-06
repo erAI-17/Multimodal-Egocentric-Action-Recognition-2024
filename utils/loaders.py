@@ -4,6 +4,8 @@ import pandas as pd
 from .epic_record import EpicVideoRecord
 import torch.utils.data as data
 from PIL import Image
+from random import randint
+import numpy as np
 import os
 import os.path
 from utils.logger import logger
@@ -15,7 +17,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
         split: str (D1, D2 or D3)
         modalities: list(str, str, ...)
         mode: str (train, test/val)
-        dataset_conf must contain the following:
+        dataset_conf must contain the following:  #**dataset_conf is the entire JSON "dataset" from .yaml
             - annotations_path: str
             - stride: int
         dataset_conf[modality] for the modalities used must contain:
@@ -45,8 +47,10 @@ class EpicKitchensDataset(data.Dataset, ABC):
         else:
             pickle_name = split + "_test.pkl"
 
+        #*READ ANNOTATIONS!! (train_val/)
         self.list_file = pd.read_pickle(os.path.join(self.dataset_conf.annotations_path, pickle_name))
         logger.info(f"Dataloader for {split}-{self.mode} with {len(self.list_file)} samples generated")
+        #**each record contains its own annotation info (1 line) and the whole JSON "dataset" from .yaml (which contains the path where to retrieve the associated video!)
         self.video_list = [EpicVideoRecord(tup, self.dataset_conf) for tup in self.list_file.iterrows()]
         self.transform = transform  # pipeline of transforms
         self.load_feat = load_feat
@@ -65,6 +69,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
 
             self.model_features = pd.merge(self.model_features, self.list_file, how="inner", on="uid")
 
+
     def _get_train_indices(self, record, modality='RGB'):
         ##################################################################
         # TODO: implement sampling for training mode                     #
@@ -73,9 +78,41 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # the video clip.                                                #
         # Remember that the returned array should have size              #
         #           num_clip x num_frames_per_clip                       #
+        #                                                                #
+        # Recall to introduce some randomicity in the selected frames    #
+        # since this is training mode                                    #              
         ##################################################################
-        raise NotImplementedError("You should implement _get_train_indices")
+        
+        average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_clips
+        if average_duration > 0:
+            start_indices = np.multiply(list(range(self.num_clips)), average_duration) + randint(average_duration, size=self.num_clips)
+        else:
+            start_indices = np.zeros((self.num_frames_per_clip,))
+        
+        indices=[] 
+        #*DENSE SAMPLING: subsequent frames
+        for start_index in start_indices:
+            frame_index = int(start_index)
+            # load self.num_frames_per_clip CONSECUTIVE frames
+            for _ in range(self.num_frames_per_clip):
+                indices.append(frame_index)
+                
+                if frame_index < record.end_frame:
+                    frame_index += 1
 
+        #*UNIFORM SAMPLING: equidistant frames (by self.stride)
+        for start_index in start_indices:
+            frame_index = int(start_index)
+            # load self.num_frames_per_clip EQUIDISTANT frames (by stride)
+            for _ in range(self.num_frames_per_clip):
+                indices.append(frame_index)
+                
+                if frame_index < record.end_frame:
+                    frame_index += self.stride
+                    
+        return indices
+        
+        
     def _get_val_indices(self, record, modality):
         ##################################################################
         # TODO: implement sampling for testing mode                      #
@@ -84,14 +121,45 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # the video clip.                                                #
         # Remember that the returned array should have size              #
         #           num_clip x num_frames_per_clip                       #
+        #                                                                #                                                               
+        # Recall to NOT introduce any  randomicity in the selected       #
+        # frames since this is test/validation mode                      #      
         ##################################################################
-        raise NotImplementedError("You should implement _get_val_indices")
+        average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) / float(self.num_clips)
+        if average_duration > 0:
+            start_indices = np.array([int(average_duration / 2.0 + average_duration * x) for x in range(self.num_segments)])
+        else:
+            start_indices = np.zeros((self.num_frames_per_clip,))
+            
+        indices=[] 
+        #*DENSE SAMPLING: subsequent frames
+        for start_index in start_indices:
+            frame_index = int(start_index)
+            # load self.num_frames_per_clip CONSECUTIVE frames
+            for _ in range(self.num_frames_per_clip):
+                indices.append(frame_index)
+                
+                if frame_index < record.end_frame:
+                    frame_index += 1
+
+        #*UNIFORM SAMPLING: equidistant frames (by self.stride)
+        for start_index in start_indices:
+            frame_index = int(start_index)
+            # load self.num_frames_per_clip EQUIDISTANT frames (by stride)
+            for _ in range(self.num_frames_per_clip):
+                indices.append(frame_index)
+                
+                if frame_index < record.end_frame:
+                    frame_index += self.stride
+        
+        return indices
+
 
     def __getitem__(self, index):
 
         frames = {}
         label = None
-        # record is a row of the pkl file containing one sample/action
+        # record is a row of the pkl file containing one sample
         # notice that it is already converted into a EpicVideoRecord object so that here you can access
         # all the properties of the sample easily
         record = self.video_list[index]

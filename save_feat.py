@@ -56,6 +56,7 @@ def main():
     if args.resume_from is not None:
         action_classifier.load_last_model(args.resume_from)
 
+    #***
     if args.action == "save":
         augmentations = {"train": train_augmentations, "test": test_augmentations}
         # the only action possible with this script is "save"
@@ -96,17 +97,18 @@ def save_feat(model, loader, device, it, num_classes):
 
             for m in modalities:
                 batch, _, height, width = data[m].shape
-                data[m] = data[m].reshape(batch, args.save.num_clips,
-                                          args.save.num_frames_per_clip[m], -1, height, width)
+                
+                #!batch <> num_clips
+                data[m] = data[m].reshape(batch, args.save.num_clips, args.save.num_frames_per_clip[m], -1, height, width)
                 data[m] = data[m].permute(1, 0, 3, 2, 4, 5)
 
                 logits[m] = torch.zeros((args.save.num_clips, batch, num_classes)).to(device)
-                features[m] = torch.zeros((args.save.num_clips, batch, model.task_models[m]
-                                           .module.feat_dim)).to(device)
+                features[m] = torch.zeros((args.save.num_clips, batch, model.task_models[m].module.feat_dim)).to(device)
 
             clip = {}
             for i_c in range(args.save.num_clips):
                 for m in modalities:
+                    #!_?
                     clip[m] = data[m][i_c].to(device)
 
                 output, feat = model(clip)
