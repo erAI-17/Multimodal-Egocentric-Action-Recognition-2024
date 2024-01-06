@@ -4,7 +4,7 @@ import pandas as pd
 from .epic_record import EpicVideoRecord
 import torch.utils.data as data
 from PIL import Image
-from random import randint
+from numpy.random import randint
 import numpy as np
 import os
 import os.path
