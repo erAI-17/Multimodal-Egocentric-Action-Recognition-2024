@@ -1,6 +1,6 @@
 action: save # train or test
 name: saved_feat_I3D
-split: test
+split: train
 resume_from: ./saved_models/I3D_SourceOnlyD1
 #from default.yaml
 gpus: null # gpus adopted
@@ -21,7 +21,7 @@ save:
 
 dataset:
   annotations_path: train_val
-  shift: ???
+  shift: D1-D1
   workers: 4
   stride: 2
   resolution: 224
