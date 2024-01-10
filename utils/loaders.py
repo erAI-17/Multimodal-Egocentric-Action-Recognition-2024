@@ -87,7 +87,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
         if average_duration > 0:
             start_indices = np.multiply(list(range(self.num_clips)), average_duration) + randint(average_duration, size=self.num_clips)
         else:
-            start_indices = np.zeros((self.num_frames_per_clip[modality],))
+            start_indices = np.zeros((self.num_clips,))
         
         indices=[] 
         if self.dense_sampling[modality]:
@@ -130,7 +130,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
         if average_duration > 0:
             start_indices = np.array([int(average_duration / 2.0 + average_duration * x) for x in range(self.num_clips)])
         else:
-            start_indices = np.zeros((self.num_frames_per_clip[modality],))
+            start_indices = np.zeros((self.num_clips,))
             
         indices=[] 
         if self.dense_sampling[modality]:
