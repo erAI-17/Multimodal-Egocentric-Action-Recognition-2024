@@ -24,10 +24,9 @@ def plot_central_frames(X, Z):
     
     '''
     X: reduced_features: n_records*1 x 1 x 2
-    Z: central_frames_images: central frames for each record
-    
+    Z: central_frames_images: central frames for each record  
     '''
-    # Extract the x and y coordinates from the vector
+
     print(X.shape[0])
     x_coords = X[:, 0]
     y_coords = X[:, 1]
@@ -54,7 +53,6 @@ def plot_actions(X, Y):
     '''
     X: reduced_features: n_records*1 x 1 x 2
     Y: useful_dataset: uid*args_num_clips (columns: uid, central_frame, verb)
-    
     '''
     # Extract the x and y coordinates from the vector
     x_coords = X[:, 0]
@@ -80,20 +78,15 @@ def plot_actions(X, Y):
     # Show the plot
     plt.show()  
 
-
-
-
-# videos ->                 record              -> clips (num_clips) -> num_frames_per_clip
-# P08_01 -> P08_01 start_frame end_frame action -> 
-def main(): #**USING EPICKITCHENDATASET
+def main(): 
     """
-    #! I3D returns features of dimesnion: n_records (1345) x num_clips x 1 x 1014
+    I3D returns features of dimesnion: n_records (1345) x num_clips x 1 x 1014
     This function reads saved features dimesion, applies dimensionality reduction (t-SNE) and plots features in 2D space
     """                 
     #Use I3D_save_features.yaml                                                                        
     full_saved_features = EpicKitchensDataset(args.dataset.shift.split("-")[1], 
                                               args.modality,
-                                              args.split, #this is args.mode which is the dataset split used (D1_train)
+                                              args.split, 
                                               args.dataset,
                                               args.save.num_frames_per_clip,
                                               args.save.num_clips, 
@@ -103,13 +96,9 @@ def main(): #**USING EPICKITCHENDATASET
                                               additional_info=True, 
                                               **{"save": args.split})
     
-    #**saved features will be in "full_saved_features.model_features"
-    #?print(full_saved_features.model_features)
-    #extract column "features_RGB" and reshape them because every "args.num_clips" (5) are belonging to the same record
-    saved_features = np.array(full_saved_features.model_features["features_RGB"].tolist())  #* original shape is (-1, args.save.num_clips, 1, 1024)
+    saved_features = np.array(full_saved_features.model_features["features_RGB"].tolist()) 
     #average the num_clips features for each record
     saved_features = np.mean(saved_features, axis=1)
-    #?print(saved_features.shape)
     saved_features.reshape(-1*1024)
     
     #Dimensionality reduction
@@ -120,7 +109,6 @@ def main(): #**USING EPICKITCHENDATASET
     #*tSNE
     #tsne = manifold.TSNE(n_components=2, random_state=0)
     #reduced_features = tsne.fit_transform(saved_features)
-    #?print(reduced_features.shape)  #* num_records x 2
        
     #extract central frame for each record
     central_frames = (full_saved_features.model_features.stop_frame - full_saved_features.model_features.start_frame) // 2
@@ -136,9 +124,6 @@ def main(): #**USING EPICKITCHENDATASET
         for i, record in enumerate(full_saved_features.video_list):
             central_frames_image = full_saved_features._load_data(modality, record, central_frames[i] )
             central_frames_images.extend(central_frames_image)
-    #print(len(central_frames_images)) #*num_records!
-    #for image in images:
-        #image.show()
         
     #plot
     plot_actions(reduced_features, useful_dataset)
