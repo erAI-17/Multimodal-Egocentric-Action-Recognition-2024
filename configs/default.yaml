@@ -33,9 +33,9 @@ dataset:
   stride: 2 # stride in case of dense sampling
   resolution: 224 # input resolution to the model
   RGB:
+    features_name: ??? #local: saved_feat_I3D_5 
     data_path: ??? # path to RGB data
     tmpl: "img_{:010d}.jpg" # format of RGB filenames
-    features_name: test_feat_kinetics
   Event: # not neeeded for the project
     rgb4e: 6
 
