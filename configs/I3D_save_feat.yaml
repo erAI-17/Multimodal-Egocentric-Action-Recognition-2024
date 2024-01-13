@@ -13,7 +13,7 @@ batch_size: 32 # batch size for the forward
 
 
 save:
-  num_clips: 5
+  num_clips: ??? #local: 5
   dense_sampling:
     RGB: True
   num_frames_per_clip:
