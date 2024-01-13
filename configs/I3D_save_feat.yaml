@@ -1,6 +1,6 @@
-action: save # train or test
-name: saved_feat_I3D
-split: train
+action: save 
+name: ??? #local: saved_feat_I3D
+split: ??? #local:train
 resume_from: ./saved_models/I3D_SourceOnlyD1
 #from default.yaml
 gpus: null # gpus adopted
@@ -13,20 +13,20 @@ batch_size: 32 # batch size for the forward
 
 
 save:
-  num_clips: 5
+  num_clips: ??? #local: 5
   dense_sampling:
-    RGB: True
+    RGB: ??? #local: True
   num_frames_per_clip:
     RGB: 16
 
 dataset:
   annotations_path: train_val
-  shift: D1-D1
+  shift: ??? #local:D1-D1
   workers: 4
   stride: 2
   resolution: 224
   RGB:
-    data_path: data/epicKitchenDA/rgb_flow/P08_unzipped
+    data_path: ??? #local: data/epicKitchenDA/rgb_flow/P08_unzipped
     tmpl: "img_{:010d}.jpg"
   Event:
     rgb4e: 6
