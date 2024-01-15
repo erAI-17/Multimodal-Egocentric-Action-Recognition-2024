@@ -9,6 +9,7 @@ import numpy as np
 import os
 import os.path
 from utils.logger import logger
+import math
 
 class EpicKitchensDataset(data.Dataset, ABC):
     def __init__(self, split, modalities, mode, dataset_conf, num_frames_per_clip, num_clips, dense_sampling,
