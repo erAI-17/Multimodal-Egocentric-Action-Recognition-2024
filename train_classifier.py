@@ -48,7 +48,7 @@ def main():
     num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
     # device where everything is run
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    print('DEVICE USED IS:', device)
     # these dictionaries are for more multi-modal training/testing, each key is a modality used
     models = {}
     logger.info("Instantiating models per modality")
