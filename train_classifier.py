@@ -143,7 +143,11 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         source_label = source_label.to(device)
         data = {}
         
-       
+        #!AVERAGE THJE FEATURES OF num_clips FOR 1 RECORD
+        for m in modalities:
+            source_data[m] = np.mean(source_data[m], axis=1)
+        ##################!!!!  
+          
         for clip in range(args.train.num_clips):
             #* in case of multi-clip training one clip per time is processed
             for m in modalities:
