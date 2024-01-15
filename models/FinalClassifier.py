@@ -5,19 +5,23 @@ from utils.args import args
 import utils
 
 input_size = 1024
-hidden_size = 128
+hidden_size1 = 512
+hidden_size2 = 256
+hidden_size3 = 128
 
 class MLP(nn.Module):
     def __init__(self):
         num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
         super(MLP, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, hidden_size)
-        self.classifier = nn.Linear(hidden_size, num_classes)
+        self.fc1 = nn.Linear(input_size, hidden_size1)
+        self.fc2 = nn.Linear(hidden_size1, hidden_size2)
+        self.fc3 = nn.Linear(hidden_size2, hidden_size3)
+        self.classifier = nn.Linear(hidden_size3, num_classes)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
         logits = self.classifier(x)
         features = {"output features": x}  
         return logits, features
