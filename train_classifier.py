@@ -145,7 +145,7 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         
         #!AVERAGE THJE FEATURES OF num_clips FOR 1 RECORD
         for m in modalities:
-            source_data[m] = np.mean(source_data[m], axis=1)
+            source_data[m] = torch.mean(source_data[m], 1)
         ##################!!!!  
           
         for clip in range(args.train.num_clips):
