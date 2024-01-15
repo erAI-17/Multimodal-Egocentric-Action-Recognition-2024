@@ -1,5 +1,5 @@
-action: save # train or test
-name: test
+action: train # train or test
+name: Train_MLP
 
 dataset:
   shift: D1-D1
