@@ -26,7 +26,6 @@ dataset:
   stride: 2
   resolution: 224
   RGB:
-    features_name: ??? #local: saved_feat_I3D_5  
     data_path: ??? #local: data/epicKitchenDA/rgb_flow/P08_unzipped
     tmpl: "img_{:010d}.jpg"
   Event:
