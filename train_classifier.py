@@ -69,10 +69,6 @@ def main():
         if args.resume_from is not None:
             action_classifier.load_last_model(args.resume_from)
         
-        #*WE USE GRADIENT ACCUMULATION (the batches are devided into smaller batches with gradient accumulation)
-        #* TOTAL_BATCH (128) -> 4* BATCH_SIZE (32)
-        #* Every TOTAL_BATCH has to be iterated (forward pass + backward pass) "args.train.num_iter" times (5000)
-        #* So, each BATCH_SIZE (32) needs to be passed  train.num_iter 
         training_iterations = args.train.num_iter * (args.total_batch // args.batch_size)
         
         #*All dataloaders are generated here
@@ -90,7 +86,6 @@ def main():
         
         train(action_classifier, train_loader, val_loader, device, num_classes)
 
-    #*test/validate
     elif args.action == "validate":
         if args.resume_from is not None:
             action_classifier.load_last_model(args.resume_from)
@@ -118,13 +113,9 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
     action_classifier.train(True)
     action_classifier.zero_grad()
     
-    #*current_iter is just for restoring from a saved run. Otherwise iteration is set to 0.
     iteration = action_classifier.current_iter * (args.total_batch // args.batch_size)
 
-    #* real_iter is the number of iterations on TOTAL_BATCH
-    #* this is needed because the lr schedule is defined on the real_iter not on
     for i in range(iteration, training_iterations):
-        #* iteration in BATCH_SIZE < TOTAL_BATCH
         real_iter = (i + 1) / (args.total_batch // args.batch_size)
         if real_iter == args.train.lr_steps:
             # learning rate decay at iteration = lr_steps
@@ -140,8 +131,6 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         #* the following code is necessary as we do not reason in terms of epochs so,
         #* as soon as the dataloader is finished we need to redefine the iterator
         try:
-            #source data is a dictionary: {"RGB": [[[batch_size (32)*num_clips (5)*1024]]], }
-            #source_label is batchsize (32)
             source_data, source_label = next(data_loader_source)
         except StopIteration:
             data_loader_source = iter(train_loader)
@@ -150,17 +139,15 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
 
         logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
                     f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
-
-        #* Action recognition
+        
         source_label = source_label.to(device)
         data = {}
         
-        #*for batch_size (32) records, take 1 clip's features (1024) and feed the model of each modality!! (By calling .forward() on the task)
+       
         for clip in range(args.train.num_clips):
             #* in case of multi-clip training one clip per time is processed
             for m in modalities:
-                data[m] = source_data[m][:, clip].to(device) #source_data[m][:, clip,:] #data[m]=[32* 1 *1024] 
-                print(source_data[m][:, clip].shape)
+                data[m] = source_data[m][:, clip].to(device)
             logits, _ = action_classifier.forward(data)
             action_classifier.compute_loss(logits, source_label, loss_weight=1)
             action_classifier.backward(retain_graph=False)
