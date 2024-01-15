@@ -142,16 +142,11 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         
         source_label = source_label.to(device)
         data = {}
-        
-        #!AVERAGE THJE FEATURES OF num_clips FOR 1 RECORD
-        for m in modalities:
-            source_data[m] = torch.mean(source_data[m], 1)
-        ##################!!!!  
-          
+                  
         for clip in range(args.train.num_clips):
             #* in case of multi-clip training one clip per time is processed
             for m in modalities:
-                data[m] = source_data[m].to(device) #data[m] = source_data[m][:, clip].to(device)
+                data[m] = source_data[m][:, clip].to(device)
             logits, _ = action_classifier.forward(data)
             action_classifier.compute_loss(logits, source_label, loss_weight=1)
             action_classifier.backward(retain_graph=False)
