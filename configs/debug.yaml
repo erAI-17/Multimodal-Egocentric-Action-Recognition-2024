@@ -1,4 +1,4 @@
-action: test # train or test
+action: train # train or test
 name: MLP
 
 dataset:
