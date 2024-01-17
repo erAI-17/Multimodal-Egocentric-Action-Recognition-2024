@@ -11,7 +11,6 @@ modality: ["RGB"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
 
-
 save:
   num_clips: ??? #local: 5
   dense_sampling:
