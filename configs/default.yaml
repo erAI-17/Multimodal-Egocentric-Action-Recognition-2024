@@ -3,7 +3,7 @@ name: ??? # name of the experiment needed for the logs
 modality: ["RGB"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
-gpus: 1 # gpus adopted
+gpus: "1" # gpus adopted
 wandb_name: null # needed for wandb logging
 resume_from: null # checkpoint directory
 logname: null # name of the logs
