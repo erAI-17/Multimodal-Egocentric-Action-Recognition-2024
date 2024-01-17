@@ -3,7 +3,7 @@ name: ??? #local: saved_feat_I3D
 split: ??? #local:train
 resume_from: ??? #local:./saved_models/I3D_SourceOnlyD1
 #from default.yaml
-gpus: null # gpus adopted
+gpus: 1 # gpus adopted
 wandb_name: null # needed for wandb logging
 logname: null # name of the logs
 models_dir: null # directory containing all the models
