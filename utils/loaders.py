@@ -78,45 +78,31 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # a list of integers representing the frames to be selected from #
         # the video clip.                                                #
         # Remember that the returned array should have size              #
-        #           num_clip x num_frames_per_clip                       #
-        #                                                                #
-        # Recall to introduce some randomicity in the selected frames    #
-        # since this is training mode                                    #              
+        #           num_clip x num_frames_per_clip                       #       
         ##################################################################
-        if self.dense_sampling[modality]:
-            # selecting one frame and discarding another (alternation), to avoid duplicates
-            center_frames = np.linspace(0, record.num_frames[modality], self.num_clips + 2,
-                                        dtype=np.int32)[1:-1]
-
-            indices = [x for center in center_frames for x in
-                       range(center - math.ceil(self.num_frames_per_clip[modality] / 2 * self.stride),
-                             # start of the segment
-                             center + math.ceil(self.num_frames_per_clip[modality] / 2 * self.stride),
-                             # end of the segment
-                             self.stride)]  # step of the sampling
-
-            offset = -indices[0] if indices[0] < 0 else 0
-            for i in range(0, len(indices), self.num_frames_per_clip[modality]):
-                indices_old = indices[i]
-                for j in range(self.num_frames_per_clip[modality]):
-                    indices[i + j] = indices[i + j] + offset if indices_old < 0 else indices[i + j]
-
-            return indices
-
-        else:
-            indices = []
-            # average_duration is the average stride among frames in the clip to obtain a uniform sampling BUT
-            # the randint shifts a little (to add randomicity among clips)
-            average_duration = record.num_frames[modality] // self.num_frames_per_clip[modality]
+        indices = []    
+        if self.dense_sampling[modality]: 
+            average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_clips
             if average_duration > 0:
+                start_indices = np.multiply(list(range(self.num_clips)), average_duration) + randint(average_duration, size=self.num_clips) #if in randint (min, max, size (how many)) if max is None, the first parameter is interpreted as max (NOT INCLUDED)
+            else:
+                start_indices = np.zeros(self.num_clips)
+            
+            for start_index in start_indices:
+                frame_index = int(start_index)
+                for _ in range(self.num_frames_per_clip[modality]):
+                    indices.append(frame_index)
+                    
+                    if frame_index < (record.end_frame + self.stride):
+                        frame_index += self.stride                     
+        else: 
+            frames_distance = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_frames_per_clip[modality]
+            if frames_distance > 0:
                 for _ in range(self.num_clips):
-                    frame_idx = np.multiply(list(range(self.num_frames_per_clip[modality])), average_duration) + \
-                                randint(average_duration, size=self.num_frames_per_clip[modality])
-                    indices.extend(frame_idx.tolist())
+                    indices = np.multiply(list(range( self.num_frames_per_clip[modality])), frames_distance) + randint(frames_distance, size=self.num_frames_per_clip[modality]) 
             else:
                 indices = np.zeros((self.num_frames_per_clip[modality] * self.num_clips,))
-            indices = np.asarray(indices)
-
+        
         return indices
         
         
@@ -127,54 +113,32 @@ class EpicKitchensDataset(data.Dataset, ABC):
         # a list of integers representing the frames to be selected from #
         # the video clip.                                                #
         # Remember that the returned array should have size              #
-        #           num_clip x num_frames_per_clip                       #
-        #                                                                #                                                               
-        # Recall to NOT introduce any  randomicity in the selected       #
-        # frames since this is test/validation mode                      #      
+        #           num_clip x num_frames_per_clip                       #                                                           
         ##################################################################
-        max_frame_idx = max(1, record.num_frames[modality])
-        if self.dense_sampling[modality]:
-            n_clips = self.num_clips
-            center_frames = np.linspace(0, record.num_frames[modality], n_clips + 2, dtype=np.int32)[1:-1]
-
-            indices = [x for center in center_frames for x in
-                       range(center - math.ceil(self.num_frames_per_clip[modality] / 2 * self.stride),
-                             # start of the segment
-                             center + math.ceil(self.num_frames_per_clip[modality] / 2 * self.stride),
-                             # end of the segment
-                             self.stride)]  # step of the sampling
-
-            offset = -indices[0] if indices[0] < 0 else 0
-            for i in range(0, len(indices), self.num_frames_per_clip[modality]):
-                indices_old = indices[i]
-                for j in range(self.num_frames_per_clip[modality]):
-                    indices[i + j] = indices[i + j] + offset if indices_old < 0 else indices[i + j]
-
-            return indices
-
-        else:  # uniform sampling
-            # Code for "Deep Analysis of CNN-based Spatio-temporal Representations for Action Recognition"
-            # arXiv: 2104.09952v1
-            # Yuan Zhi, Zhan Tong, Limin Wang, Gangshan Wu
-            frame_idices = []
-            sample_offsets = list(range(-self.num_clips // 2 + 1, self.num_clips // 2 + 1))
-            for sample_offset in sample_offsets:
-                if max_frame_idx > self.num_frames_per_clip[modality]:
-                    tick = max_frame_idx / float(self.num_frames_per_clip[modality])
-                    curr_sample_offset = sample_offset
-                    if curr_sample_offset >= tick / 2.0:
-                        curr_sample_offset = tick / 2.0 - 1e-4
-                    elif curr_sample_offset < -tick / 2.0:
-                        curr_sample_offset = -tick / 2.0
-                    frame_idx = np.array([int(tick / 2.0 + curr_sample_offset + tick * x) for x
-                                          in range(self.num_frames_per_clip[modality])])
-                else:
-                    np.random.seed(sample_offset - (-self.num_clips // 2 + 1))
-                    frame_idx = np.random.choice(max_frame_idx, self.num_frames_per_clip[modality])
-                frame_idx = np.sort(frame_idx)
-                frame_idices.extend(frame_idx.tolist())
-            frame_idx = np.asarray(frame_idices)
-            return frame_idx
+        indices = []
+        if self.dense_sampling[modality]: 
+            average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_clips
+            if average_duration > 0:
+                start_indices = np.array([int(average_duration / 2.0 + average_duration * x) for x in range(self.num_clips)])
+            else:
+                start_indices = np.zeros(self.num_clips)
+                
+            for start_index in start_indices:
+                frame_index = int(start_index)
+                for _ in range(self.num_frames_per_clip[modality]):
+                    indices.append(frame_index)
+                    
+                    if frame_index < (record.end_frame + self.stride):
+                        frame_index += self.stride
+        else: 
+            frames_distance = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_frames_per_clip[modality]
+            if frames_distance > 0:
+                for _ in range(self.num_clips):
+                    indices = np.multiply(list(range( self.num_frames_per_clip[modality])), frames_distance)
+            else:
+                indices = np.zeros((self.num_frames_per_clip[modality] * self.num_clips,))
+                            
+        return indices
 
 
     def __getitem__(self, index):
