@@ -93,7 +93,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
                 for _ in range(self.num_frames_per_clip[modality]):
                     indices.append(frame_index)
                     
-                    if frame_index < (record.end_frame + self.stride):
+                    if (frame_index + self.stride) < record.end_frame:
                         frame_index += self.stride                     
         else: 
             frames_distance = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_frames_per_clip[modality]
@@ -128,8 +128,8 @@ class EpicKitchensDataset(data.Dataset, ABC):
                 for _ in range(self.num_frames_per_clip[modality]):
                     indices.append(frame_index)
                     
-                    if frame_index < (record.end_frame + self.stride):
-                        frame_index += self.stride
+                    if (frame_index + self.stride) < record.end_frame:
+                        frame_index += self.stride   
         else: 
             frames_distance = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_frames_per_clip[modality]
             if frames_distance > 0:
