@@ -8,6 +8,7 @@ wandb_name: null # needed for wandb logging
 resume_from: null # checkpoint directory
 logname: null # name of the logs
 models_dir: null # directory containing all the models
+feat_avg: ???
 
 train:
   num_iter: 5000 # number of training iterations with total_batch size
@@ -43,7 +44,8 @@ dataset:
 models:
   RGB:
     model: ??? #MLP #LSTM #TRANSFORMER
-    normalize: False
+    normalize: ???
+    dropout: ???
     kwargs: {}
     lr_steps: 3000
     lr: 0.01
