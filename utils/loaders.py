@@ -48,10 +48,8 @@ class EpicKitchensDataset(data.Dataset, ABC):
         else:
             pickle_name = split + "_test.pkl"
 
-        #*READ ANNOTATIONS!! (train_val/)
         self.list_file = pd.read_pickle(os.path.join(self.dataset_conf.annotations_path, pickle_name))
         logger.info(f"Dataloader for {split}-{self.mode} with {len(self.list_file)} samples generated")
-        #**each record contains its own annotation info (1 line) and the whole JSON "dataset" from .yaml (which contains the path where to retrieve the associated video!)
         self.video_list = [EpicVideoRecord(tup, self.dataset_conf) for tup in self.list_file.iterrows()]
         self.transform = transform  # pipeline of transforms
         self.load_feat = load_feat
@@ -72,14 +70,6 @@ class EpicKitchensDataset(data.Dataset, ABC):
 
 
     def _get_train_indices(self, record, modality='RGB'):
-        ##################################################################
-        # TODO: implement sampling for training mode                     #
-        # Give the record and the modality, this function should return  #
-        # a list of integers representing the frames to be selected from #
-        # the video clip.                                                #
-        # Remember that the returned array should have size              #
-        #           num_clip x num_frames_per_clip                       #       
-        ##################################################################
         indices = []    
         if self.dense_sampling[modality]: 
             average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_clips
@@ -107,14 +97,6 @@ class EpicKitchensDataset(data.Dataset, ABC):
         
         
     def _get_val_indices(self, record, modality):
-        ##################################################################
-        # TODO: implement sampling for testing mode                      #
-        # Give the record and the modality, this function should return  #
-        # a list of integers representing the frames to be selected from #
-        # the video clip.                                                #
-        # Remember that the returned array should have size              #
-        #           num_clip x num_frames_per_clip                       #                                                           
-        ##################################################################
         indices = []
         if self.dense_sampling[modality]: 
             average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_clips
@@ -220,3 +202,11 @@ class EpicKitchensDataset(data.Dataset, ABC):
 
     def __len__(self):
         return len(self.video_list)
+
+
+#*###########################
+#* ActionSense dataset
+#*###########################
+
+#class ActionSenseDataset(data.Dataset, ABC):
+   

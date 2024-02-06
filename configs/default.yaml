@@ -1,6 +1,6 @@
 action: ??? # train or test
 name: ??? # name of the experiment needed for the logs
-modality: ["RGB"] # modality used
+modality: ["RGB"] #!["RGB", "EMG"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
 gpus: ??? # gpus adopted
@@ -17,15 +17,19 @@ train:
   num_clips: ??? # clips adopted in training
   dense_sampling: # sampling version adopted in training for each modality
     RGB: True
+    EMG: True
   num_frames_per_clip: # number of frames adopted in training for each modality
     RGB: 16
+    EMG: 16
 
 test:
   num_clips: 5 # number of clips in testing
   dense_sampling: # sampling version adopted in test for each modality
     RGB: True
+    EMG: True
   num_frames_per_clip: # number of frames adopted in test for each modality
     RGB: 16
+    EMG: 16
 
 dataset:
   annotations_path: train_val # path for the annotations data
@@ -35,14 +39,23 @@ dataset:
   resolution: 224 # input resolution to the model
   RGB:
     features_name: ??? #local: saved_feat_I3D_5 
-    data_path: ??? # path to RGB data
+    data_path: ??? # path to RGB data: # data/ActionSense/EMG_flow 
     tmpl: "img_{:010d}.jpg" # format of RGB filenames
-  Event: # not neeeded for the project
-    rgb4e: 6
+  EMG:
+    data_path: ??? # data/ActionSense/EMG_flow 
 
 # these are the action recognition models for each modality
 models:
   RGB:
+    model: ??? #MLP #LSTM #TRANSFORMER
+    normalize: ???
+    dropout: ???
+    kwargs: {}
+    lr_steps: 3000
+    lr: 0.01
+    sgd_momentum: 0.9
+    weight_decay: 1e-7
+  EMG:
     model: ??? #MLP #LSTM #TRANSFORMER
     normalize: ???
     dropout: ???
