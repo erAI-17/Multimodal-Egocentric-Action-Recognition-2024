@@ -44,10 +44,9 @@ def plot_central_frames(X, Z):
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.title('frames in 2D Space')
- 
+    plt.savefig(args.dataset.RGB.features_name+'images')
     plt.show()
 
- 
 def plot_actions(X, Y):
     
     '''
@@ -75,6 +74,7 @@ def plot_actions(X, Y):
 
     #legend
     plt.legend()
+    plt.savefig(args.dataset.RGB.features_name+'actions')
     # Show the plot
     plt.show()  
 
@@ -128,8 +128,6 @@ def main():
     #plot
     plot_actions(reduced_features, useful_dataset)
     plot_central_frames(reduced_features, central_frames_images)     
-   
-
     return 0
 
 
