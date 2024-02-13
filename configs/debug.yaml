@@ -1,4 +1,4 @@
-action: save # train or test
+action: test # train or test
 name: saving
 
 dataset:
