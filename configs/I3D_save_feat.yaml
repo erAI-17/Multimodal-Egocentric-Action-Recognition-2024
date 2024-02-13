@@ -19,7 +19,7 @@ save:
 
 dataset:
   annotations_path: train_val
-  shift: ??? #local:D1-D1
+  shift: ??? 
   workers: 4
   stride: 2
   resolution: 224
