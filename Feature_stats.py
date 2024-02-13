@@ -24,7 +24,7 @@ def plot_central_frames(X, Z):
     x_coords = X[:, 0]
     y_coords = X[:, 1]
 
-    plt.figure(figsize=(8, 6), dpi=300)
+    plt.figure(figsize=(8, 6), dpi=250)
     ax = plt.subplot()
     ax.scatter(x_coords,y_coords) 
     
@@ -38,11 +38,11 @@ def plot_central_frames(X, Z):
     plt.ylabel('Y')
     plt.title('frames in 2D Space')
     print("Saving image RGBs")
-    plt.savefig(args.dataset.RGB.features_name+'images', dpi=300)
+    plt.savefig(args.dataset.RGB.features_name+'images', dpi=2500)
     plt.show()
 
 def plot_actions(X, Y):
-    plt.figure(figsize=(10, 8), dpi=300)
+    plt.figure(figsize=(10, 8), dpi=250)
     x_coords = X[:, 0]
     y_coords = X[:, 1]
 
@@ -64,7 +64,7 @@ def plot_actions(X, Y):
     #legend
     plt.legend()
     print("Saving image action")
-    plt.savefig(args.dataset.RGB.features_name+'actions', dpi=300)
+    plt.savefig(args.dataset.RGB.features_name+'actions', dpi=250)
     # Show the plot
     plt.show()  
 
