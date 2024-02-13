@@ -30,7 +30,6 @@ dataset:
   Event:
     rgb4e: 6
 
-# these are the action recognition models for each modality
 models:
   RGB:
     model: I3D
