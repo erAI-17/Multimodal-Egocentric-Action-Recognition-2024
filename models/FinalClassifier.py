@@ -60,7 +60,7 @@ class LSTM(nn.Module):
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.dropout = nn.Dropout(args.models.RGB.dropout)
         self.relu = nn.ReLU()
-        self.classifier = nn.Linear(hidden_size, num_classes)
+        self.fc = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
         out, _ = self.lstm(x)
