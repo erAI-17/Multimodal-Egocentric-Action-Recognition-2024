@@ -26,6 +26,7 @@ class MLP(nn.Module):
             x = self.avg_pool(x.permute(0, 2, 1))  
             x = x.permute(0, 2, 1)
             print("input SHAPE if feat averaging IS:",x.shape)
+            x = x.squeeze(dim=1)
             x = self.fc1(x)
             x = self.dropout(x)
             x = self.relu(x)
@@ -45,6 +46,7 @@ class MLP(nn.Module):
             logits = self.fc3(x)
             logits = self.avg_pool(logits.permute(0, 2, 1)) 
             logits = logits.permute(0, 2, 1)
+            logits = logits.squeeze(dim=1)
             print("logits SHAPE if NO feat averaging IS:",logits.shape)
         features = {"output features": x}  # Create a dictionary of features from last layer
         
