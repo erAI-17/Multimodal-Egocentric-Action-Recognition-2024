@@ -50,7 +50,7 @@ class MLP(nn.Module):
             print("logits SHAPE if NO feat averaging IS:",logits.shape)
         features = {"output features": x}  # Create a dictionary of features from last layer
         
-        return logits.squeeze(), features
+        return logits, features
 
 
 class LSTM(nn.Module):
