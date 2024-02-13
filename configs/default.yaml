@@ -17,8 +17,8 @@ train:
   eval_freq: 50 # evaluation frequency
   num_clips: ??? #5 #10
   dense_sampling: # sampling version adopted in training for each modality
-    RGB: True #True #False
-    EMG: True #True #False
+    RGB: ??? #True #False
+    EMG: ??? #True #False
   num_frames_per_clip: # number of frames adopted in training for each modality
     RGB: ??? #16 #25
     EMG: ??? #16 #25
@@ -26,8 +26,8 @@ train:
 test:
   num_clips: ??? # number of clips in testing
   dense_sampling: # sampling version adopted in test for each modality
-    RGB: True #True #False
-    EMG: True #True #False
+    RGB: ??? #True #False
+    EMG: ??? #True #False
   num_frames_per_clip: # number of frames adopted in test for each modality
     RGB: ??? #16 #25
     EMG: ??? #16 #25
