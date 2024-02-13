@@ -44,6 +44,7 @@ def plot_central_frames(X, Z):
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.title('frames in 2D Space')
+    print("Saving image RGBs")
     plt.savefig(args.dataset.RGB.features_name+'images')
     plt.show()
 
@@ -74,6 +75,7 @@ def plot_actions(X, Y):
 
     #legend
     plt.legend()
+    print("Saving image action")
     plt.savefig(args.dataset.RGB.features_name+'actions')
     # Show the plot
     plt.show()  
