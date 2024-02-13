@@ -2,7 +2,7 @@ action: save
 name: ??? 
 split: ??? 
 resume_from: ??? 
-gpus: ??? #
+gpus: null 
 wandb_name: null 
 logname: null 
 models_dir: null 
