@@ -10,7 +10,6 @@ hidden_size = 512
 class MLP(nn.Module):
     def __init__(self):
         num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
-        print("NUMCLASSES:",num_classes)
         super(MLP, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
@@ -21,11 +20,9 @@ class MLP(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool1d(1) 
         
     def forward(self, x):
-        print("input SHAPE IS:",x.shape)
         if args.feat_avg:   #*Feature Averaging
             x = self.avg_pool(x.permute(0, 2, 1))  
             x = x.permute(0, 2, 1)
-            print("input SHAPE if feat averaging IS:",x.shape)
             x = x.squeeze(dim=1)
             x = self.fc1(x)
             x = self.dropout(x)
@@ -34,7 +31,6 @@ class MLP(nn.Module):
             x = self.dropout(x)
             x = self.relu(x)
             logits = self.fc3((x))
-            print("logits SHAPE if feat averaging IS:",logits.shape)
         else:              #*Logits Averaging
             
             x = self.fc1(x)
@@ -47,7 +43,6 @@ class MLP(nn.Module):
             logits = self.avg_pool(logits.permute(0, 2, 1)) 
             logits = logits.permute(0, 2, 1)
             logits = logits.squeeze(dim=1)
-            print("logits SHAPE if NO feat averaging IS:",logits.shape)
         features = {"output features": x}  # Create a dictionary of features from last layer
         
         return logits, features
