@@ -21,7 +21,7 @@ class MLP(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool1d(1) 
         
     def forward(self, x):
-        print("SHAPE IS:",x.shape())
+        print("SHAPE IS:",x.shape)
         if args.feat_avg:   #*Feature Averaging
             x = self.avg_pool(x.permute(0, 2, 1))  
             x = x.permute(0, 2, 1)
