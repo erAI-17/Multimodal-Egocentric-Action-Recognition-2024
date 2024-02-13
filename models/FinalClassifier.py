@@ -12,11 +12,11 @@ class MLP(nn.Module):
         num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
         super(MLP, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
-        self.dropout1 = nn.Dropout(args.models.RGB.dropout)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
-        self.dropout2 = nn.Dropout(args.models.RGB.dropout)
-        self.classifier = nn.Linear(hidden_size, num_classes)
+        self.fc3 = nn.Linear(hidden_size, num_classes)
         
+        self.dropout= nn.Dropout(args.models.RGB.dropout)
+        self.relu = nn.ReLU()
         self.avg_pool = nn.AdaptiveAvgPool1d(1) 
         
     def forward(self, x):
@@ -24,18 +24,29 @@ class MLP(nn.Module):
             x = self.avg_pool(x.permute(0, 2, 1))  
             x = x.permute(0, 2, 1)
             
-        x = torch.relu(self.fc1(x))
-        x = self.dropout1(x)
-        x = torch.relu(self.fc2(x))
-        x = self.dropout2(x)
-        logits = self.classifier(x)
-        
-        if args.feat_avg==False:   #*Logits Averaging
+            x = self.fc1(x)
+            x = self.dropout(x)
+            x = self.relu(x)
+            x = self.fc2(x)
+            x = self.dropout(x)
+            x = self.relu(x)
+            logits = self.fc3(x)
+            
+        else:              #*Logits Averaging
+            
+            x = self.fc1(x)
+            x = self.dropout(x)
+            x = self.relu(x)
+            x = self.fc2(x)
+            x = self.dropout(x)
+            x = self.relu(x)
+            logits = self.fc3(x)
             logits = self.avg_pool(logits.permute(0, 2, 1)) 
             logits = logits.permute(0, 2, 1)
-
+    
         features = {"output features": x}  # Create a dictionary of features from last layer
         return logits, features
+
 
 class LSTM(nn.Module):
     def __init__(self, num_layers=1):
