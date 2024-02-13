@@ -24,7 +24,7 @@ def plot_central_frames(X, Z):
     x_coords = X[:, 0]
     y_coords = X[:, 1]
 
-    plt.figure()
+    plt.figure(figsize=(8, 6), dpi=300)
     ax = plt.subplot()
     ax.scatter(x_coords,y_coords) 
     
