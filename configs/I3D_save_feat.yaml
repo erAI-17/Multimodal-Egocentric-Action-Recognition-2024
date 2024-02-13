@@ -1,15 +1,14 @@
 action: save 
-name: ??? #local: saved_feat_I3D
-split: ??? #local:train
-resume_from: ??? #local:./saved_models/I3D_SourceOnlyD1
-#from default.yaml
-gpus: ??? # gpus adopted
-wandb_name: null # needed for wandb logging
-logname: null # name of the logs
-models_dir: null # directory containing all the models
-modality: ["RGB"] # modality used
-total_batch: 128 # total batch size if training is done with gradient accumulation
-batch_size: 32 # batch size for the forward
+name: ??? 
+split: ??? 
+resume_from: ??? 
+gpus: ??? #
+wandb_name: null 
+logname: null 
+models_dir: null 
+modality: ["RGB"] 
+total_batch: 128 
+batch_size: 32 
 
 save:
   num_clips: ??? #local: 5
@@ -27,6 +26,7 @@ dataset:
   RGB:
     data_path: ??? #local: data/epicKitchenDA/rgb_flow/P08_unzipped
     tmpl: "img_{:010d}.jpg"
+    features_name: ???
   Event:
     rgb4e: 6
 
