@@ -32,7 +32,7 @@ class MLP(nn.Module):
             x = self.fc2(x)
             x = self.dropout(x)
             x = self.relu(x)
-            logits = self.fc3(x)
+            logits = self.fc3((x))
             print("logits SHAPE if feat averaging IS:",logits.shape)
         else:              #*Logits Averaging
             
@@ -47,7 +47,8 @@ class MLP(nn.Module):
             logits = logits.permute(0, 2, 1)
             print("logits SHAPE if NO feat averaging IS:",logits.shape)
         features = {"output features": x}  # Create a dictionary of features from last layer
-        return logits, features
+        
+        return logits.squeeze(), features
 
 
 class LSTM(nn.Module):
