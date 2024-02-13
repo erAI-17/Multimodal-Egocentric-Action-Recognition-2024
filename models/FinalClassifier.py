@@ -25,9 +25,9 @@ class MLP(nn.Module):
             x = x.permute(0, 2, 1)
             
         x = torch.relu(self.fc1(x))
-        x = torch.dropout1(x)
+        x = self.dropout1(x)
         x = torch.relu(self.fc2(x))
-        x = torch.dropout2(x)
+        x = self.dropout2(x)
         logits = self.classifier(x)
         
         if args.feat_avg==False:   #*Logits Averaging
