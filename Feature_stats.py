@@ -38,7 +38,7 @@ def plot_central_frames(X, Z):
     plt.ylabel('Y')
     plt.title('frames in 2D Space')
     print("Saving image RGBs")
-    plt.savefig(args.dataset.RGB.features_name+'images', dpi=2500)
+    plt.savefig(args.dataset.RGB.features_name+'images', dpi=250)
     plt.show()
 
 def plot_actions(X, Y):
