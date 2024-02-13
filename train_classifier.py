@@ -216,8 +216,9 @@ def validate(model, val_loader, device, it, num_classes):
             for m in modalities:
                 logits[m] = output[m]
             
-            for m in modalities:
-                logits[m] = torch.mean(logits[m], dim=0)
+            #already performing mean inside mlp
+            #for m in modalities:
+            #   logits[m] = torch.mean(logits[m], dim=0)
 
             model.compute_accuracy(logits, label)
 
