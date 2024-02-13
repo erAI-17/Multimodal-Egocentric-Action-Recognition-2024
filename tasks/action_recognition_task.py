@@ -95,7 +95,7 @@ class ActionRecognition(tasks.Task, ABC):
         loss_weight : float, optional
             weight of the classification loss, by default 1.0
         """
-        fused_logits = reduce(lambda x, y: x + y, logits.values())
+        fused_logits = reduce(lambda x, y: x + y, logits.values()) #!!!!!fuse logits from different modalities!
         loss = self.criterion(fused_logits, label) / self.num_clips
         # Update the loss value, weighting it by the ratio of the batch size to the total 
         # batch size (for gradient accumulation)
