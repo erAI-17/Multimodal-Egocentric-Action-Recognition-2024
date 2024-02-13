@@ -21,11 +21,11 @@ class MLP(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool1d(1) 
         
     def forward(self, x):
-        print("SHAPE IS:",x.shape)
+        print("input SHAPE IS:",x.shape)
         if args.feat_avg:   #*Feature Averaging
             x = self.avg_pool(x.permute(0, 2, 1))  
             x = x.permute(0, 2, 1)
-            
+            print("input SHAPE if feat averaging IS:",x.shape)
             x = self.fc1(x)
             x = self.dropout(x)
             x = self.relu(x)
@@ -33,7 +33,7 @@ class MLP(nn.Module):
             x = self.dropout(x)
             x = self.relu(x)
             logits = self.fc3(x)
-            
+            print("logits SHAPE if feat averaging IS:",x.shape)
         else:              #*Logits Averaging
             
             x = self.fc1(x)
@@ -45,7 +45,7 @@ class MLP(nn.Module):
             logits = self.fc3(x)
             logits = self.avg_pool(logits.permute(0, 2, 1)) 
             logits = logits.permute(0, 2, 1)
-    
+            print("logits SHAPE if NO feat averaging IS:",x.shape)
         features = {"output features": x}  # Create a dictionary of features from last layer
         return logits, features
 
