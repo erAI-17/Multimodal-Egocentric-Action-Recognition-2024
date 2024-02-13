@@ -21,13 +21,6 @@ from PIL import Image
 
 
 def plot_central_frames(X, Z):
-    
-    '''
-    X: reduced_features: n_records*1 x 1 x 2
-    Z: central_frames_images: central frames for each record  
-    '''
-
-    print(X.shape[0])
     x_coords = X[:, 0]
     y_coords = X[:, 1]
 
@@ -36,7 +29,7 @@ def plot_central_frames(X, Z):
     ax.scatter(x_coords,y_coords) 
     
     for x , y, z in zip(x_coords, y_coords, Z):
-        imagebox = offsetbox.AnnotationBbox(offsetbox.OffsetImage(z, zoom=0.07),(x, y))
+        imagebox = offsetbox.AnnotationBbox(offsetbox.OffsetImage(z, zoom=0.05),(x, y),  frameon=False)
         ax.add_artist(imagebox)
        
     plt.xticks([]), plt.yticks([])  
@@ -49,12 +42,6 @@ def plot_central_frames(X, Z):
     plt.show()
 
 def plot_actions(X, Y):
-    
-    '''
-    X: reduced_features: n_records*1 x 1 x 2
-    Y: useful_dataset: uid*args_num_clips (columns: uid, central_frame, verb)
-    '''
-    # Extract the x and y coordinates from the vector
     x_coords = X[:, 0]
     y_coords = X[:, 1]
 
