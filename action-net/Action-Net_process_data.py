@@ -10,15 +10,44 @@ from scipy.signal import butter, lfilter # for filtering
 EMG_data_path = 'Action-Net/data/EMG_data'
 annotations_path = 'Action-Net/data/annotations'
 
-#!!'S03_1.pkl' TOO LOW FREQUENCY. It's a calibration file?
+
+#!!'S03_1.pkl' TOO LOW FREQUENCY
 subjects = ('S00_2.pkl', 'S01_1.pkl', 'S02_2.pkl' , 'S02_3.pkl','S02_4.pkl','S03_2.pkl','S04_1.pkl','S05_2.pkl','S06_1.pkl','S06_2.pkl','S07_1.pkl', 'S08_1.pkl', 'S09_2.pkl')
+#subjects = ('S03_1.pkl','S00_2.pkl')
 
 
 def lowpass_filter(data, cutoff, Fs, order=5):
+    '''
+    Function that applies a low-pass filter to a given data set allowing you to remove high-frequency noise or unwanted frequency components from the data
+    by filtering input data removing the frequencies above the cutoff frequency.
+    Cutoff filters are useful for:
+        1) noise reduction: remove high-frequency components that may contain unwanted noise or interference
+        2) frequency isolation: isolate specific frequency bands of interest. For example, in audio engineering, a low-pass filter can be used to isolate the bass frequencies
+        3) Anti-aliasing
+        4) Smoothing: smooth out a signal by removing high-frequency fluctuations (unwanted variations) and highlight underlying trends
+
+    cutoff: maximum frequency allowed to pass through the filter.
+    Fs:sampling frequency of the input data (it is the number of samples taken per second)
+    order (optional): the order of the filter. The default value is 5, which indicates a 5th-order filter.
+    '''
+
+    # Nyquist frequency represents the highest frequency that can be accurately represented in the sampled data (set to half of the sampling frequency).
     nyq = 0.5 * Fs
+    #This normalization step ensures that the cutoff frequency is expressed as a fraction of the Nyquist frequency, which is a standard practice in signal processing.
     normal_cutoff = cutoff / nyq
 
+    #butter  function from the  scipy.signal  module to design the filter coefficients (b,a) for the low-pass filter.
+    #The 'butter' function takes the filter order, the normalized cutoff frequency, and the filter type as arguments.
+    #In this case, the filter type is specified as 'low', indicating a low-pass filter, and the
+    #analog  parameter is set to  False , indicating that we are designing a digital filter
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
+
+    #filter coefficients (b,a) are then used to apply the low-pass filter to the input data.
+    #This is done using the  lfilter  function from the  scipy.signal  module.
+    #The  lfilter  function takes the filter coefficients, the input data, and the axis along which the filter should be applied as arguments.
+    #In this case, the filter is applied along the columns of the input data, as indicated by the  axis=1  argument.
+    #y = lfilter(b, a, data.T).T
+    
     y = np.empty_like(data)
     for i,x in enumerate(data):
         y[i] = lfilter(b, a, x.T).T
@@ -70,7 +99,7 @@ def Baseline(dataset):
                 if duration_s < 5: #!5sec
                     continue
 
-                #! SEARCH IN THIS ACTION'S READINGS AND ALSO IN THE NEXT ONE!!-> doesn't find anything 
+                #! SEARCH IN THIS ACTION'S READINGS AND ALSO IN THE NEXT ONE!!-> doesn't find anything
                 filtered_myo_left_indices = np.where((action_end_ts<= row[7]) & (row[7] < next_action_start_ts))[0]
                 filtered_myo_left_ts = np.array([row[7][i] for i in filtered_myo_left_indices])
                 filtered_myo_left_readings = np.array([row[8][i] for i in filtered_myo_left_indices])
@@ -172,6 +201,12 @@ def Preprocessing(dataset):
 
         Fs_left = (myo_left_total_n_readings - 1) / (myo_left_timestamps[-1][-1] - myo_left_timestamps[0][0])
         Fs_right = (myo_right_total_n_readings - 1) / (myo_right_timestamps[-1][-1] - myo_right_timestamps[0][0])
+        if (Fs_left<15 or Fs_right<15):
+            print("Fs too low for subject", subjectid)
+            print("Fs right", Fs_right)
+            print("Fs levt", Fs_left)
+            print(myo_left_total_n_readings)
+            print(myo_right_total_n_readings)
 
         #absolute value
         myo_left_readings = np.abs(myo_left_readings)
@@ -203,7 +238,13 @@ def Preprocessing(dataset):
 
 
 if __name__ == '__main__':
-    
+
+
+    # df = pd.read_pickle('./Action-Net/data/EMG_dataS04_1_train.pkl')
+    # print(df.columns)
+    # print(df.shape)
+    # print(df.head())
+
     #Load all EMG data, merge it with annotations
     #split dataset into train and test splits according to annotations files
     AN_train, AN_test = split_train_test() #returns pd dataframe
@@ -225,6 +266,12 @@ if __name__ == '__main__':
     AN_train = Preprocessing(AN_train) #AN_train_base #AN_train_aug
     AN_test = Preprocessing(AN_test) #AN_test_base #AN_test_aug
     
+    AN_train = pd.DataFrame(AN_train, columns=['index', 'file', 'description_x', 'labels', 'description_y', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings'])
+    print(AN_train.columns)
+    print(AN_train.shape)
+    print(AN_train.head())
+    print(AN_train[AN_train['file']=='S00_2.pkl'])
+
     ##Convert back to pd dataframes
     AN_train_final = pd.DataFrame(AN_train, columns=['index', 'file', 'description_x', 'labels', 'description_y', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings'])
     AN_test_final = pd.DataFrame(AN_test, columns=['index', 'file', 'description_x', 'labels', 'description_y', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings'])
@@ -234,13 +281,24 @@ if __name__ == '__main__':
     AN_train_final.rename(columns={'description_x': 'description'}, inplace=True)
     AN_test_final.drop(columns=['description_y'], inplace=True)
     AN_test_final.rename(columns={'description_x': 'description'}, inplace=True)
+    
+    #add class column based on different instances of "description"
+    unique_values = AN_train_final['description'].unique()
+    value_to_int = {value: idx for idx, value in enumerate(unique_values)}
+    AN_train_final['description_class'] = AN_train_final['description'].map(value_to_int)
+    AN_test_final['description_class'] = AN_test_final['description'].map(value_to_int)
+    
+    print(AN_train_final)
+    print(AN_train_final.columns)
+    print(AN_train_final.shape)
+    print(AN_train_final[AN_train_final['file'] == 'S02_4.pkl'])
 
     # #Save preprocessed dataset
-    filepath = EMG_data_path + 'SXY_train.pkl'
+    filepath = os.path.join(EMG_data_path, 'SXY_train.pkl')
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(AN_train_final, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    filepath = EMG_data_path + 'SXY_test.pkl'
+    filepath = os.path.join(EMG_data_path, 'SXY_test.pkl')
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(AN_test_final, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -249,11 +307,11 @@ if __name__ == '__main__':
     AN_test_final_S04 = AN_test_final[AN_test_final['file'] == 'S04_1.pkl']
 
     # #Save preprocessed dataset for SO4
-    filepath = EMG_data_path + 'S04_1_train.pkl'
+    filepath = os.path.join(EMG_data_path, 'S04_1_train.pkl')
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(AN_train_final_S04, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    filepath = EMG_data_path +'S04_1_test.pkl'
+    filepath = os.path.join(EMG_data_path,'S04_1_test.pkl')
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(AN_test_final_S04, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
