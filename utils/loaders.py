@@ -377,8 +377,13 @@ class ActionVisionDataset(data.Dataset, ABC):
             # here the frame is loaded in memory
             frame = self._load_data(modality, record, p)
             images.extend(frame)
-        # finally, all the transformations are applied
-        process_data = self.transform[modality](images)
+            
+            if self.transform is not None:
+                # finally, all the transformations are applied
+                process_data = self.transform[modality](images)
+            else: 
+                process_data = images
+                
         return process_data, record.label
 
     def _load_data(self, modality, record, idx):

@@ -23,9 +23,8 @@ class ActionSenseRecord(VideoRecord):
 
     @property
     def num_frames(self):
-        return {'RGB': self.stop - self.start,
-                'EMG': self.stop - self.start}
-
+        return {'RGB': self.end_frame - self.start_frame,
+                'EMG': self.end_frame - self.start_frame}
     @property
     def label(self):
         if 'labels' not in self._series.keys().tolist():

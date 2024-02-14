@@ -44,6 +44,7 @@ dataset:
     tmpl: "img_{:010d}.jpg" # format of RGB filenames
   EMG:
     data_path: ??? # data/ActionSense/EMG_flow 
+    tmpl: "array_{:010d}.txt" #JUST placeholder (not used for emg)
 
 # these are the action recognition models for each modality
 models:
