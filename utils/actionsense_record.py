@@ -14,11 +14,11 @@ class ActionSenseRecord(VideoRecord):
         return int(self._series['file']) #S04_0.pkl...
 
     @property
-    def start(self):
+    def start_frame(self):
         return self._series['start'] - 1
 
     @property
-    def stop(self):
+    def end_frame(self):
         return self._series['stop'] - 2
 
     @property
