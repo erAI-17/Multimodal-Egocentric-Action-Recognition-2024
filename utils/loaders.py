@@ -85,10 +85,10 @@ class EpicKitchensDataset(data.Dataset, ABC):
                     if (frame_index + self.stride) < record.end_frame:
                         frame_index += self.stride                     
         else: 
-            frames_distance = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_frames_per_clip[modality]
-            if frames_distance > 0:
-                for _ in range(self.num_clips):
-                    indices = np.multiply(list(range( self.num_frames_per_clip[modality])), frames_distance) + randint(frames_distance, size=self.num_frames_per_clip[modality]) 
+            average_duration = record.num_frames[modality] // self.num_frames_per_clip[modality]
+            if average_duration > 0:
+                frame_idx = np.multiply(np.arange(self.num_frames_per_clip[modality]), average_duration) + np.random.randint(average_duration, size=self.num_frames_per_clip[modality])
+                indices = np.tile(frame_idx, self.num_clips)
             else:
                 indices = np.zeros((self.num_frames_per_clip[modality] * self.num_clips,))
         
@@ -112,10 +112,10 @@ class EpicKitchensDataset(data.Dataset, ABC):
                     if (frame_index + self.stride) < record.end_frame:
                         frame_index += self.stride   
         else: 
-            frames_distance = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_frames_per_clip[modality]
-            if frames_distance > 0:
-                for _ in range(self.num_clips):
-                    indices = np.multiply(list(range( self.num_frames_per_clip[modality])), frames_distance)
+            average_duration = record.num_frames[modality] // self.num_frames_per_clip[modality]
+            if average_duration > 0:
+                frame_idx = np.multiply(np.arange(self.num_frames_per_clip[modality]), average_duration) #+ np.random.randint(average_duration, size=self.num_frames_per_clip[modality])
+                indices = np.tile(frame_idx, self.num_clips)
             else:
                 indices = np.zeros((self.num_frames_per_clip[modality] * self.num_clips,))
                             
