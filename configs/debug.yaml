@@ -1,5 +1,5 @@
 action: save # train or test
-name: training
+name: SAVING
 
 dataset:
-  shift: SXY-SXY
+  shift: D1-D1
