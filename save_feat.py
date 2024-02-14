@@ -98,7 +98,7 @@ def save_feat(model, loader, device, it, num_classes):
             for m in modalities:
                 batch, _, height, width = data[m].shape
                 
-                #!batch <> num_clips
+                #!batch <-> num_clips
                 data[m] = data[m].reshape(batch, args.save.num_clips, args.save.num_frames_per_clip[m], -1, height, width)
                 data[m] = data[m].permute(1, 0, 3, 2, 4, 5)
 
