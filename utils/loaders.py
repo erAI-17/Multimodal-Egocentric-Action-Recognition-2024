@@ -209,6 +209,14 @@ class EpicKitchensDataset(data.Dataset, ABC):
 #* ActionSense dataset
 #*###########################
 
+#####################################
+#####################################
+#!preprocessed_data.pkl format:
+#!  'index', 'file', 'description_x', 'labels', 'description_y', 'start',
+#!       'stop', 'myo_left_timestamps', 'myo_left_readings',
+#!       'myo_right_timestamps', 'myo_right_readings'
+#!                
+#!  
 class ActionVisionDataset(data.Dataset, ABC):
     def __init__(self, split, modalities, mode, dataset_conf, num_frames_per_clip, num_clips, dense_sampling,
                  transform=None, load_feat=False, additional_info=False, **kwargs):
@@ -238,7 +246,7 @@ class ActionVisionDataset(data.Dataset, ABC):
         self.num_clips = num_clips
         self.stride = self.dataset_conf.stride
         self.additional_info = additional_info
-
+        
         if self.mode == "train":
             pickle_name = split + "_train.pkl"
         elif kwargs.get('save', None) is not None:
@@ -260,17 +268,17 @@ class ActionVisionDataset(data.Dataset, ABC):
             self.model_features = None
             for m in self.modalities:
                 # load features for each modality
-                model_features = pd.DataFrame(pd.read_pickle(os.path.join(self.dataset_conf[m].features_name + "_" +
-                                                                          pickle_name))['features'])[["uid", "features_" + m]]
+                model_features = pd.DataFrame(pd.read_pickle(os.path.join(self.dataset_conf[m].features_name +
+                                                                          pickle_name)))[["uid", "features_" + m]]
                 if self.model_features is None:
                     self.model_features = model_features
-                else:
-                    self.model_features = pd.merge(self.model_features, model_features, how="inner", on="uid")
+                #!else:
+                #!    self.model_features = pd.merge(self.model_features, model_features, how="inner", on="uid")
 
-            self.model_features = pd.merge(self.model_features, self.list_file, how="inner", on="uid")
+            #!self.model_features = pd.merge(self.model_features, self.list_file, how="inner", on="uid")
 
 
-    def _get_train_indices(self, record, modality='RGB'):
+    def _get_train_indices(self, record, modality):
         indices = []    
         if self.dense_sampling[modality]: 
             #*DENSE SAMPLING: equidistant frames (by self.stride) in each clip
@@ -289,11 +297,11 @@ class ActionVisionDataset(data.Dataset, ABC):
                         frame_index += self.stride
                             
         else: 
-            #*UNIFORM SAMPLING: equidistant frames (by self.stride) over all the record!
-            frames_distance = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_frames_per_clip[modality]
-            if frames_distance > 0:
-                for _ in range(self.num_clips):
-                    indices = np.multiply(list(range( self.num_frames_per_clip[modality])), frames_distance) + randint(frames_distance, size=self.num_frames_per_clip[modality]) 
+            #*UNIFORM SAMPLING: equidistant frames
+            average_duration = record.num_frames[modality] // self.num_frames_per_clip[modality]
+            if average_duration > 0:
+                frame_idx = np.multiply(np.arange(self.num_frames_per_clip[modality]), average_duration) + np.random.randint(average_duration, size=self.num_frames_per_clip[modality])
+                indices = np.tile(frame_idx, self.num_clips)
             else:
                 indices = np.zeros((self.num_frames_per_clip[modality] * self.num_clips,))
         
@@ -319,11 +327,11 @@ class ActionVisionDataset(data.Dataset, ABC):
                     if (frame_index+self.stride < record.end_frame):
                         frame_index += self.stride
         else: 
-            #*UNIFORM SAMPLING: equidistant frames (by self.stride) over all the record!
-            frames_distance = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_frames_per_clip[modality]
-            if frames_distance > 0:
-                for _ in range(self.num_clips):
-                    indices = np.multiply(list(range( self.num_frames_per_clip[modality])), frames_distance)
+            #*UNIFORM SAMPLING: equidistant frames
+            average_duration = record.num_frames[modality] // self.num_frames_per_clip[modality]
+            if average_duration > 0:
+                frame_idx = np.multiply(np.arange(self.num_frames_per_clip[modality]), average_duration) #+ np.random.randint(average_duration, size=self.num_frames_per_clip[modality])
+                indices = np.tile(frame_idx, self.num_clips)
             else:
                 indices = np.zeros((self.num_frames_per_clip[modality] * self.num_clips,))
                             
@@ -344,9 +352,9 @@ class ActionVisionDataset(data.Dataset, ABC):
             sample_row = self.model_features[self.model_features["uid"] == int(record.uid)]
             assert len(sample_row) == 1
             for m in self.modalities:
-                sample[m] = sample_row["features_" + m].values[0]
+                sample[m] = sample_row["features_" + m].values[0] #[720,16]
             if self.additional_info:
-                return sample, record.label, record.untrimmed_video_name, record.uid
+                return sample, record.label, record.uid
             else:
                 return sample, record.label
 
@@ -366,7 +374,7 @@ class ActionVisionDataset(data.Dataset, ABC):
             frames[m] = img
 
         if self.additional_info:
-            return frames, label, record.untrimmed_video_name, record.uid
+            return frames, label, record.uid
         else:
             return frames, label
 
@@ -377,13 +385,11 @@ class ActionVisionDataset(data.Dataset, ABC):
             # here the frame is loaded in memory
             frame = self._load_data(modality, record, p)
             images.extend(frame)
-            
-            if self.transform is not None:
-                # finally, all the transformations are applied
-                process_data = self.transform[modality](images)
-            else: 
-                process_data = images
-                
+        if self.transform is not None:
+            # finally, all the transformations are applied
+            process_data = self.transform[modality](images)
+        else: 
+            process_data = (images)
         return process_data, record.label
 
     def _load_data(self, modality, record, idx):
@@ -395,39 +401,40 @@ class ActionVisionDataset(data.Dataset, ABC):
 
             idx_untrimmed = record.start_frame + idx
             try:
-                img = Image.open(os.path.join(data_path, record.untrimmed_video_name, tmpl.format(idx_untrimmed))) \
+                img = Image.open(os.path.join(data_path, record.uid, tmpl.format(idx_untrimmed))) \
                     .convert('RGB')
             except FileNotFoundError:
                 print("Img not found")
                 max_idx_video = int(sorted(glob.glob(os.path.join(data_path,
-                                                                  record.untrimmed_video_name,
+                                                                  record.uid,
                                                                   "img_*")))[-1].split("_")[-1].split(".")[0])
                 if idx_untrimmed > max_idx_video:
-                    img = Image.open(os.path.join(data_path, record.untrimmed_video_name, tmpl.format(max_idx_video))) \
+                    img = Image.open(os.path.join(data_path, record.uid, tmpl.format(max_idx_video))) \
                         .convert('RGB')
                 else:
                     raise FileNotFoundError
             return [img]
         
         elif modality == 'EMG':  
-            #get the readings (left and right) associated at to index selected from the interval
-            #stop-start. Since the 2 intervals may not be sinchronized: if index overshoots 
-            #take the last reading
+            #get the readings (left and right) associated to index selected from the interval
+            #stop-start. Since the start->stop interval and the len(myo reading) may be different
+            # (not sinchronized by some millisecond): if index overshoots, I take the last reading
             if idx >= len(record.myo_left_readings):
                 myo_left_reading = record.myo_left_readings[-1]
             else:
-                myo_left_reading = record.myo_left_readings[idx]   
+                myo_left_reading = record.myo_left_readings[idx] #(8,)  
                 
             if idx >= len(record.myo_right_readings):
-                myo_right_readings = record.myo_right_readings[-1]
+                myo_right_readings = record.myo_right_readings[-1] #(8,)
             else:
-                myo_right_readings = record.myo_right_readings[idx]  
+                myo_right_readings = record.myo_right_readings[idx] #(8,) 
                 
             #stack the left-right readings into 1*16
             #if they don't match size, I take intersection!
-            combined_myo = np.hstack((myo_right_readings, myo_left_reading))  # Horizontally stack the arrays
+            combined_myo = np.hstack((myo_right_readings, myo_left_reading))  #(16,) # Horizontally stack the arrays
         
-            return combined_myo
+            return [combined_myo]
+        
         else:
             raise NotImplementedError("Modality not implemented")
 

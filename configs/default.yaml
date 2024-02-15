@@ -43,8 +43,9 @@ dataset:
     data_path: ???  #Epic-Kitchen_RGB
     tmpl: "img_{:010d}.jpg" # format of RGB filenames
   EMG:
-    data_path: ??? # data/ActionSense/EMG_flow 
+    data_path: ??? 
     tmpl: "array_{:010d}.txt" #JUST placeholder (not used for emg)
+    features_name: ???
 
 # these are the action recognition models for each modality
 models:
@@ -58,7 +59,7 @@ models:
     sgd_momentum: 0.9
     weight_decay: 1e-7
   EMG:
-    model: ??? #MLP #LSTM #TRANSFORMER
+    model: ??? #MLP_EMG #LSTM_EMG #TRANSFORMER
     normalize: ???
     dropout: ???
     kwargs: {}

@@ -8,7 +8,11 @@ class ActionSenseRecord(VideoRecord):
         self._index = str(tup[0])
         self._series = tup[1]
         self.dataset_conf = dataset_conf
-
+    
+    @property
+    def uid(self):
+        return self._series['uid']
+    
     @property
     def subjectid(self):
         return int(self._series['file']) #S04_0.pkl...
@@ -25,11 +29,16 @@ class ActionSenseRecord(VideoRecord):
     def num_frames(self):
         return {'RGB': self.end_frame - self.start_frame,
                 'EMG': self.end_frame - self.start_frame}
+
     @property
     def label(self):
-        if 'labels' not in self._series.keys().tolist():
+        if 'description_class' not in self._series.keys().tolist():
             raise NotImplementedError
-        return self._series['labels']
+        return self._series['description_class']
+    
+    @property
+    def features_EMG(self):
+        return self._series['features_EMG']
     
     @property
     def myo_left_readings(self):

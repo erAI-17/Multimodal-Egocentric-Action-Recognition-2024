@@ -1,7 +1,5 @@
-import h5py
 import numpy as np
 import pickle
-import re
 import pandas as pd
 import os
 from scipy.signal import butter, lfilter # for filtering
@@ -12,7 +10,7 @@ annotations_path = 'Action-Net/data/annotations'
 
 
 #!!'S03_1.pkl' TOO LOW FREQUENCY
-subjects = ('S00_2.pkl', 'S01_1.pkl', 'S02_2.pkl' , 'S02_3.pkl','S02_4.pkl','S03_2.pkl','S04_1.pkl','S05_2.pkl','S06_1.pkl','S06_2.pkl','S07_1.pkl', 'S08_1.pkl', 'S09_2.pkl')
+subjects = ('S00_2.pkl', 'S01_1.pkl', 'S02_2.pkl' , 'S02_3.pkl','S02_4.pkl', 'S03_1.pkl' ,'S03_2.pkl','S04_1.pkl','S05_2.pkl','S06_1.pkl','S06_2.pkl','S07_1.pkl', 'S08_1.pkl', 'S09_2.pkl')
 #subjects = ('S03_1.pkl','S00_2.pkl')
 
 
@@ -46,11 +44,11 @@ def lowpass_filter(data, cutoff, Fs, order=5):
     #This is done using the  lfilter  function from the  scipy.signal  module.
     #The  lfilter  function takes the filter coefficients, the input data, and the axis along which the filter should be applied as arguments.
     #In this case, the filter is applied along the columns of the input data, as indicated by the  axis=1  argument.
-    #y = lfilter(b, a, data.T).T
+    y = lfilter(b, a, data.T).T
     
-    y = np.empty_like(data)
-    for i,x in enumerate(data):
-        y[i] = lfilter(b, a, x.T).T
+    # y = np.empty_like(data)
+    # for i,x in enumerate(data):
+    #     y[i] = lfilter(b, a, x.T).T
     return y
 
 
@@ -145,22 +143,41 @@ def Augmenting(data):
     num_intervals = ((data[:, 6] - data[:, 5]) / 5).astype(int)
 
     for i, row in enumerate(data):
-        if num_intervals[i] <= 1:    #if just 1 interval of 5 seconds, don't split, leave action like this
-            new_rows.append(row)
+        if num_intervals[i] == 0:    #if action is smaller than 5 sec, drop it
+            #new_rows.append(row)
             continue
 
         # Compute the start and stop timesteps for each interval of this row
         start_ts = row[5] + np.arange(num_intervals[i]) * 5
         stop_ts = start_ts + 5
 
+        mean_length = 900
         for j in range(num_intervals[i]):
-            filtered_myo_left_indices = np.where((start_ts[j] <= row[7]) & (row[7] < stop_ts[j]))[0]
-            filtered_myo_left_ts = np.array([row[7][i] for i in filtered_myo_left_indices])
-            filtered_myo_left_readings = np.array([row[8][i] for i in filtered_myo_left_indices])
-
-            filtered_myo_right_indices = np.where((start_ts[j] <= row[9]) & (row[9] < stop_ts[j]))[0]
+            filtered_myo_left_indices = np.where((start_ts[j] <= row[7]) & (row[7] < stop_ts[j]))[0] #(801,)
+            
+            if filtered_myo_left_indices.shape[0] > mean_length:
+                filtered_myo_left_indices = filtered_myo_left_indices[:mean_length]
+            elif filtered_myo_left_indices.shape[0] < mean_length:
+                padding_length = mean_length - filtered_myo_left_indices.shape[0]
+                last_value = filtered_myo_left_indices[-1]
+                filtered_myo_left_indices = np.pad(filtered_myo_left_indices, (0, padding_length), mode='constant', constant_values=(0, last_value))
+            
+            filtered_myo_left_ts = np.array([row[7][i] for i in filtered_myo_left_indices]) #(801,)
+            filtered_myo_left_readings = np.array([row[8][i] for i in filtered_myo_left_indices]) #(801,8)
+            
+            
+            filtered_myo_right_indices = np.where((start_ts[j] <= row[9]) & (row[9] < stop_ts[j]))[0] #(997,)
+            
+            if filtered_myo_right_indices.shape[0] > mean_length:
+                filtered_myo_right_indices = filtered_myo_right_indices[:mean_length]
+            elif filtered_myo_right_indices.shape[0] < mean_length:
+                padding_length = mean_length - filtered_myo_right_indices.shape[0]
+                last_value = filtered_myo_right_indices[-1]
+                filtered_myo_right_indices = np.pad(filtered_myo_right_indices, (0, padding_length), mode='constant', constant_values=(0, last_value))
+                
             filtered_myo_right_ts = np.array([row[9][i] for i in filtered_myo_right_indices])
             filtered_myo_right_readings = np.array([row[10][i] for i in filtered_myo_right_indices])
+
 
             # Create new rows with the updated arrays
             new_row = [row[0], row[1], row[2], row[3], row[4], start_ts[j], stop_ts[j], filtered_myo_left_ts, filtered_myo_left_readings, filtered_myo_right_ts, filtered_myo_right_readings]
@@ -198,15 +215,9 @@ def Preprocessing(dataset):
         myo_left_total_n_readings = np.sum([sub_array.size for sub_array in myo_left_timestamps])
         myo_right_total_n_readings = np.sum([sub_array.size for sub_array in myo_right_timestamps])
 
-
+        #last action, last timestamp - first action, first timestamp
         Fs_left = (myo_left_total_n_readings - 1) / (myo_left_timestamps[-1][-1] - myo_left_timestamps[0][0])
         Fs_right = (myo_right_total_n_readings - 1) / (myo_right_timestamps[-1][-1] - myo_right_timestamps[0][0])
-        if (Fs_left<15 or Fs_right<15):
-            print("Fs too low for subject", subjectid)
-            print("Fs right", Fs_right)
-            print("Fs levt", Fs_left)
-            print(myo_left_total_n_readings)
-            print(myo_right_total_n_readings)
 
         #absolute value
         myo_left_readings = np.abs(myo_left_readings)
@@ -237,15 +248,18 @@ def Preprocessing(dataset):
     return dataset
 
 
+def myo_readings_stacking(myo_left_readings, myo_right_readings):
+    stacked_array = []
+    for action1, action2 in zip(myo_left_readings, myo_right_readings):
+        # Check if the actions have the same number of (, 8) arrays, otherwise, handle as needed
+        min_length = min(len(action1), len(action2))
+        stacked_action = np.hstack((action1[:min_length], action2[:min_length]))
+        stacked_array.append(stacked_action)
+    return np.array(stacked_array)
+
 if __name__ == '__main__':
 
-
-    # df = pd.read_pickle('./Action-Net/data/EMG_dataS04_1_train.pkl')
-    # print(df.columns)
-    # print(df.shape)
-    # print(df.head())
-
-    #Load all EMG data, merge it with annotations
+    #Load all EMG data, merge it with annotations and
     #split dataset into train and test splits according to annotations files
     AN_train, AN_test = split_train_test() #returns pd dataframe
 
@@ -253,65 +267,89 @@ if __name__ == '__main__':
     ##schema: ['index', 'file', 'description_x', 'labels', 'description_y', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
     AN_train = AN_train.copy().to_numpy() #[527*11]
     AN_test = AN_test.copy().to_numpy()
+    
+    #Introduce baselines actions #!doesn't find any baseline for this dataset
+    #AN_train_base = Baseline(AN_train) #[*11]
+    #AN_test_base = Baseline(AN_test)   #[*11]
 
-    # ##Introduce baselines actions
-    # #AN_train_base = Baseline(AN_train) #[*11]
-    # #AN_test_base = Baseline(AN_test)   #[*11]
-
-    # #Augment actions into smaller actions of 5seconds each
-    AN_train = Augmenting(AN_train)
+    #Augment actions into smaller actions of 5seconds each
+    AN_train = Augmenting(AN_train) #! augments from 527 samples to 3313 samples
     AN_test = Augmenting(AN_test)
     
     # #Filter, Normalize and Augment
     AN_train = Preprocessing(AN_train) #AN_train_base #AN_train_aug
     AN_test = Preprocessing(AN_test) #AN_test_base #AN_test_aug
     
-    AN_train = pd.DataFrame(AN_train, columns=['index', 'file', 'description_x', 'labels', 'description_y', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings'])
-    print(AN_train.columns)
-    print(AN_train.shape)
-    print(AN_train.head())
-    print(AN_train[AN_train['file']=='S00_2.pkl'])
-
     ##Convert back to pd dataframes
     AN_train_final = pd.DataFrame(AN_train, columns=['index', 'file', 'description_x', 'labels', 'description_y', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings'])
     AN_test_final = pd.DataFrame(AN_test, columns=['index', 'file', 'description_x', 'labels', 'description_y', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings'])
-
-    #twice the column description due to the join, keep one and rename it
-    AN_train_final.drop(columns=['description_y'], inplace=True)
-    AN_train_final.rename(columns={'description_x': 'description'}, inplace=True)
-    AN_test_final.drop(columns=['description_y'], inplace=True)
-    AN_test_final.rename(columns={'description_x': 'description'}, inplace=True)
+      
+    #Stack the myo_left_readings and myo_right_readings into a new column "features_EMG"
+    myo_readings_stacked_train = myo_readings_stacking(AN_train[:,8], AN_train[:,10])
+    AN_train_final['features_EMG'] = [row for row in myo_readings_stacked_train]
     
-    #add class column based on different instances of "description"
-    unique_values = AN_train_final['description'].unique()
+    myo_readings_stacked_test = myo_readings_stacking(AN_test[:,8], AN_test[:,10])
+    AN_test_final['features_EMG'] = [row for row in myo_readings_stacked_test]
+    
+    # #!DELETE LINES WITH file=S03_1.pkl because I cannot filter them (too low frequency) to 3058 samples
+    #AN_train_final = AN_train_final[AN_train_final['file'] != 'S03_1.pkl']
+    #AN_test_final = AN_test_final[AN_test_final['file'] != 'S03_1.pkl']
+    
+    #There are some activities with slightly different names that I want to merge 
+    activities_renamed = {
+        'Open/close a jar of almond butter': ['Open a jar of almond butter'],
+        'Get/replace items from refrigerator/cabinets/drawers': ['Get items from refrigerator/cabinets/drawers'],
+    }
+    
+    AN_train_final.loc[AN_train_final['description_x'] == 'Open/close a jar of almond butter', 'description_x'] = 'Open a jar of almond butter'
+    AN_test_final.loc[AN_test_final['description_x'] == 'Open/close a jar of almond butter', 'description_x'] = 'Open a jar of almond butter'
+    AN_train_final.loc[AN_train_final['description_x'] == 'Get/replace items from refrigerator/cabinets/drawers', 'description_x'] = 'Get items from refrigerator/cabinets/drawers'
+    AN_test_final.loc[AN_test_final['description_x'] == 'Get/replace items from refrigerator/cabinets/drawers', 'description_x'] = 'Get items from refrigerator/cabinets/drawers'
+    
+    # #add class column based on different instances of "description"
+    unique_values = AN_train_final['description_x'].unique()
     value_to_int = {value: idx for idx, value in enumerate(unique_values)}
-    AN_train_final['description_class'] = AN_train_final['description'].map(value_to_int)
-    AN_test_final['description_class'] = AN_test_final['description'].map(value_to_int)
+    AN_train_final['description_class'] = AN_train_final['description_x'].map(value_to_int)
+    AN_test_final['description_class'] = AN_test_final['description_x'].map(value_to_int)
     
-    print(AN_train_final)
+    # #add unique index column identifying each action, because "index" column has the same value for augmented actions
+    AN_train_final['uid'] = range(len(AN_train_final))
+    AN_test_final['uid'] = range(len(AN_test_final))
+    
+    print(AN_train_final['description_class'].max())
+    print(AN_test_final['description_class'].max())
     print(AN_train_final.columns)
     print(AN_train_final.shape)
-    print(AN_train_final[AN_train_final['file'] == 'S02_4.pkl'])
+    print(AN_train_final.head())
+    #print(df[df['myo_right_readings'].apply(check_greater_than_one)])
+    myo_right_readings = AN_train_final['myo_right_readings']
+    features_EMG = AN_train_final['features_EMG']
 
-    # #Save preprocessed dataset
-    filepath = os.path.join(EMG_data_path, 'SXY_train.pkl')
+    
+    #Save preprocessed dataset into pkl file FOR EVERY SUBJECT formatted as {features: [{uid: 1 , subjectid: S00_2, features_EMG: [] , labels: }]}
+    filepath = 'Action-Net/data/SXY_train.pkl'
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(AN_train_final, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    filepath = os.path.join(EMG_data_path, 'SXY_test.pkl')
+    filepath = 'Action-Net/data/SXY_test.pkl'
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(AN_test_final, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    #Produce annotations only for subject S04
-    AN_train_final_S04 = AN_train_final[AN_train_final['file'] == 'S04_1.pkl']
-    AN_test_final_S04 = AN_test_final[AN_test_final['file'] == 'S04_1.pkl']
+    
+    
+    
+    ##! Save preprocessed dataset for SO4 formatted as uid, subjectid, features_EMG, features_RGB , label
+    # #Filter lines only for subject S04
+    # AN_train_final_S04 = AN_train_final[AN_train_final['file'] == 'S04_1.pkl']
+    # AN_test_final_S04 = AN_test_final[AN_test_final['file'] == 'S04_1.pkl']
 
-    # #Save preprocessed dataset for SO4
-    filepath = os.path.join(EMG_data_path, 'S04_1_train.pkl')
-    with open(filepath, 'wb') as pickle_file:
-        pickle.dump(AN_train_final_S04, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+    # #create a column for each features RGB 
+    # filepath = 'Action-Net/data/S04_1_train.pkl'
+    # with open(filepath, 'wb') as pickle_file:
+    #     pickle.dump(AN_train_final_S04, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    filepath = os.path.join(EMG_data_path,'S04_1_test.pkl')
-    with open(filepath, 'wb') as pickle_file:
-        pickle.dump(AN_test_final_S04, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+    # filepath = 'Action-Net/data/S04_1_test.pkl')
+    # with open(filepath, 'wb') as pickle_file:
+    #     pickle.dump(AN_test_final_S04, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
+    
