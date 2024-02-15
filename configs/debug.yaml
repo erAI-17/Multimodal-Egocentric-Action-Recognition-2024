@@ -1,5 +1,5 @@
-action: save # train or test
-name: SAVING
+action: train # train or test
+name: train
 
 dataset:
   shift: D1-D1
