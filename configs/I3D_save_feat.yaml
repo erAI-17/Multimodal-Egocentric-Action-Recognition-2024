@@ -25,7 +25,7 @@ dataset:
   resolution: 224
   RGB:
     data_path: ??? #local: data/epicKitchenDA/rgb_flow/P08_unzipped
-    tmpl: "img_{:010d}.jpg"
+    tmpl: ??? #"img_{:010d}.jpg" # "img_{:010f}.jpg" for S04 is float
     features_name: ???
   Event:
     rgb4e: 6
