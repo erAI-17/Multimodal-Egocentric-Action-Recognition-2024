@@ -5,7 +5,7 @@ import torch
 def get_domains_and_labels(args):
     if args.action == 'save':
         num_class = 8
-        domains = {'SXY': 8, 'S04':8}
+        domains = {'SXY': 8, 'S04':8, 'D1': 8, 'D2': 1, 'D3': 22}
         source_domain = domains[args.dataset.shift.split("-")[0]]
         target_domain = domains[args.dataset.shift.split("-")[1]]
         valid_labels = [i for i in range(num_class)]
