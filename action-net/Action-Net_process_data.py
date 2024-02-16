@@ -14,7 +14,7 @@ subjects = ('S00_2.pkl', 'S01_1.pkl', 'S02_2.pkl' , 'S02_3.pkl','S02_4.pkl', 'S0
 #subjects = ('S03_1.pkl','S00_2.pkl')
 
 
-def lowpass_filter(data, cutoff, Fs, order=5):
+def lowpass_filter(data, cutoff, Fs, order=4):
     '''
     Function that applies a low-pass filter to a given data set allowing you to remove high-frequency noise or unwanted frequency components from the data
     by filtering input data removing the frequencies above the cutoff frequency.
@@ -30,6 +30,7 @@ def lowpass_filter(data, cutoff, Fs, order=5):
     '''
 
     # Nyquist frequency represents the highest frequency that can be accurately represented in the sampled data (set to half of the sampling frequency).
+    Fs = 160 #!GIVEN
     nyq = 0.5 * Fs
     #This normalization step ensures that the cutoff frequency is expressed as a fraction of the Nyquist frequency, which is a standard practice in signal processing.
     normal_cutoff = cutoff / nyq
@@ -152,7 +153,7 @@ def Augmenting(data):
         stop_ts = start_ts + 5
 
         mean_length = 900
-        for j in range(num_intervals[i]):
+        for j in range(num_intervals[i]-1):
             filtered_myo_left_indices = np.where((start_ts[j] <= row[7]) & (row[7] < stop_ts[j]))[0] #(801,)
             
             if filtered_myo_left_indices.shape[0] > mean_length:
@@ -177,7 +178,6 @@ def Augmenting(data):
                 
             filtered_myo_right_ts = np.array([row[9][i] for i in filtered_myo_right_indices])
             filtered_myo_right_readings = np.array([row[10][i] for i in filtered_myo_right_indices])
-
 
             # Create new rows with the updated arrays
             new_row = [row[0], row[1], row[2], row[3], row[4], start_ts[j], stop_ts[j], filtered_myo_left_ts, filtered_myo_left_readings, filtered_myo_right_ts, filtered_myo_right_readings]
@@ -257,6 +257,50 @@ def myo_readings_stacking(myo_left_readings, myo_right_readings):
         stacked_array.append(stacked_action)
     return np.array(stacked_array)
 
+
+def handler_S04(AN_train_final, AN_test_final):
+    #video_length: 1.01.06 
+    fps= 29.67
+    
+    #Filter lines only for subject S04
+    AN_train_final_S04 = AN_train_final[AN_train_final['file'] == 'S04_1.pkl']
+    AN_test_final_S04 = AN_test_final[AN_test_final['file'] == 'S04_1.pkl']
+    
+    #Merge back and order by start timestamp
+    merged_df = pd.concat([AN_train_final_S04, AN_test_final_S04])
+    sorted_merged_df = merged_df.sort_values(by='start', ascending=True)
+    
+    # Assuming the first timestamp corresponds to the start of the video
+    video_start_timestamp = sorted_merged_df['start'].min()
+
+    # Calculate START_INDEX and STOP_INDEX
+    sorted_merged_df['start_frame'] = ((sorted_merged_df['start'].astype(float) - float(video_start_timestamp)) * fps).round().astype(int)
+    sorted_merged_df['stop_frame'] = ((sorted_merged_df['stop'].astype(float) - float(video_start_timestamp)) * fps).round().astype(int)
+    
+    #AGAIN split into S04_test and S04_train
+    #read annotation files
+    annotations_train = pd.read_pickle(os.path.join(annotations_path, 'ActionNet_train.pkl'))
+    annotations_test = pd.read_pickle(os.path.join(annotations_path, 'ActionNet_test.pkl'))
+
+    #Inner join by indexes and file
+    S04_train = annotations_train.merge(sorted_merged_df, on=['index','file'], how='inner')
+    S04__test = annotations_test.merge(sorted_merged_df, on=['index', 'file'], how='inner')
+
+    # Save preprocessed dataset for SO4 formatted as uid, subjectid, features_EMG, features_RGB , label
+    filepath = 'Action-Net/data/S04_train.pkl'
+    with open(filepath, 'wb') as pickle_file:
+        pickle.dump(S04_train, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+    filepath = 'Action-Net/data/S04_test.pkl'
+    with open(filepath, 'wb') as pickle_file:
+        pickle.dump(S04__test, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+        
+    print(S04_train.head())
+    print(S04_train.shape)
+    print(S04_train.columns)   
+    print(S04_train['stop_frame'].dtype)
+
+
 if __name__ == '__main__':
 
     #Load all EMG data, merge it with annotations and
@@ -335,21 +379,11 @@ if __name__ == '__main__':
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(AN_test_final, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
+    #Produce annotations for S04 also with start and stop frames for RGB flow
+    handler_S04(AN_train_final, AN_test_final)
     
-    
-    
-    ##! Save preprocessed dataset for SO4 formatted as uid, subjectid, features_EMG, features_RGB , label
-    # #Filter lines only for subject S04
-    # AN_train_final_S04 = AN_train_final[AN_train_final['file'] == 'S04_1.pkl']
-    # AN_test_final_S04 = AN_test_final[AN_test_final['file'] == 'S04_1.pkl']
-
-    # #create a column for each features RGB 
-    # filepath = 'Action-Net/data/S04_1_train.pkl'
-    # with open(filepath, 'wb') as pickle_file:
-    #     pickle.dump(AN_train_final_S04, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
-
-    # filepath = 'Action-Net/data/S04_1_test.pkl')
-    # with open(filepath, 'wb') as pickle_file:
-    #     pickle.dump(AN_test_final_S04, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
-
-    
+    # df = pd.read_pickle("Action-net/data/SXY_train.pkl")
+    # print(df.head())
+    # print(df.shape)
+    # print(df.columns)   
+    # print(df['features_EMG'])
