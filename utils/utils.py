@@ -16,7 +16,7 @@ def get_domains_and_labels(args):
     elif args.dataset.shift == 'SXY-SXY' or args.dataset.shift == 'S04-S04':
         
         num_class = 20
-        domains = {'SXY': 20}
+        domains = {'SXY': 20, 'S04':20}
         source_domain = domains[args.dataset.shift.split("-")[0]]
         target_domain = domains[args.dataset.shift.split("-")[1]]
         valid_labels = [i for i in range(num_class)]
