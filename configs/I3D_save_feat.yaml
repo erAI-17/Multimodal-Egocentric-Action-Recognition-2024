@@ -18,7 +18,7 @@ save:
     RGB: ???
 
 dataset:
-  annotations_path: train_val
+  annotations_path: ???
   shift: ??? 
   workers: 4
   stride: 2
