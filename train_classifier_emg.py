@@ -176,7 +176,6 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         data = {}
         for m in modalities:
             data[m] = source_data[m].to(device)
-            print("shape from the modalities for loop is:",data[m].shape)
         logits, _ = action_classifier.forward(data)
         action_classifier.compute_loss(logits, source_label, loss_weight=1)
         action_classifier.backward(retain_graph=False)
