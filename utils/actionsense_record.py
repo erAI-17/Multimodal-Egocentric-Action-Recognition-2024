@@ -15,15 +15,15 @@ class ActionSenseRecord(VideoRecord):
     
     @property
     def subjectid(self):
-        return int(self._series['file']) #S04_0.pkl...
+        return self._series['file'] #S04_0.pkl...
 
     @property
     def start_frame(self):
-        return self._series['start'] - 1
+        return int(self._series['start'] - 1)
 
     @property
     def end_frame(self):
-        return self._series['stop'] - 2
+        return int(self._series['stop'] - 2)
 
     @property
     def num_frames(self):

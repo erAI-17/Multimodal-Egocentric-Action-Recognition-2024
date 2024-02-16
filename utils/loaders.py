@@ -402,15 +402,14 @@ class ActionVisionDataset(data.Dataset, ABC):
 
             idx_untrimmed = record.start_frame + idx
             try:
-                img = Image.open(os.path.join(data_path, record.uid, tmpl.format(idx_untrimmed))) \
+                img = Image.open(os.path.join(data_path, tmpl.format(idx_untrimmed))) \
                     .convert('RGB')
             except FileNotFoundError:
                 print("Img not found")
                 max_idx_video = int(sorted(glob.glob(os.path.join(data_path,
-                                                                  record.uid,
                                                                   "img_*")))[-1].split("_")[-1].split(".")[0])
                 if idx_untrimmed > max_idx_video:
-                    img = Image.open(os.path.join(data_path, str(record.uid), tmpl.format(max_idx_video))) \
+                    img = Image.open(os.path.join(data_path, tmpl.format(max_idx_video))) \
                         .convert('RGB')
                 else:
                     raise FileNotFoundError
