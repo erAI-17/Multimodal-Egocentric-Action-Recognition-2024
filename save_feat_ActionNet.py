@@ -4,6 +4,7 @@ import torch.nn.parallel
 import torch.optim
 import torch
 from utils.loaders import EpicKitchensDataset
+from utils.loaders import ActionVisionDataset
 from utils.args import args
 from utils.utils import pformat_dict
 import utils
@@ -60,11 +61,15 @@ def main():
     if args.action == "save":
         augmentations = {"train": train_augmentations, "test": test_augmentations}
         # the only action possible with this script is "save"
-        loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[1], modalities,
-                                                                 args.split, args.dataset,
+        loader = torch.utils.data.DataLoader(ActionVisionDataset(args.dataset.shift.split("-")[1], #ActionSenseRecord #EpicKitchensDataset
+                                                                 modalities,
+                                                                 args.split, 
+                                                                 args.dataset,
                                                                  args.save.num_frames_per_clip,
-                                                                 args.save.num_clips, args.save.dense_sampling,
-                                                                 augmentations[args.split], additional_info=True,
+                                                                 args.save.num_clips,
+                                                                 args.save.dense_sampling,
+                                                                 augmentations[args.split], 
+                                                                 additional_info=True,
                                                                  **{"save": args.split}),
                                              batch_size=1, shuffle=False,
                                              num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
@@ -127,39 +132,11 @@ def save_feat(model, loader, device, it, num_classes):
                 results_dict["features"].append(sample)
             num_samples += batch
 
-            model.compute_accuracy(logits, label)
-
-            if (i_val + 1) % (len(loader) // 5) == 0:
-                logger.info("[{}/{}] top1= {:.3f}% top5 = {:.3f}%".format(i_val + 1, len(loader),
-                                                                          model.accuracy.avg[1], model.accuracy.avg[5]))
-
         #**Save features
         os.makedirs("saved_features", exist_ok=True)
         pickle.dump(results_dict, open(os.path.join("saved_features", args.name + "_" +
                                                     args.dataset.shift.split("-")[1] + "_" +
                                                     args.split + ".pkl"), 'wb'))
-
-        #**Accuracies
-        class_accuracies = [(x / y) * 100 for x, y in zip(model.accuracy.correct, model.accuracy.total)]
-        logger.info('Final accuracy: top1 = %.2f%%\ttop5 = %.2f%%' % (model.accuracy.avg[1],
-                                                                      model.accuracy.avg[5]))
-        for i_class, class_acc in enumerate(class_accuracies):
-            logger.info('Class %d = [%d/%d] = %.2f%%' % (i_class,
-                                                         int(model.accuracy.correct[i_class]),
-                                                         int(model.accuracy.total[i_class]),
-                                                         class_acc))
-
-    logger.info('Accuracy by averaging class accuracies (same weight for each class): {}%'
-                .format(np.array(class_accuracies).mean(axis=0)))
-    test_results = {'top1': model.accuracy.avg[1], 'top5': model.accuracy.avg[5],
-                    'class_accuracies': np.array(class_accuracies)}
-
-    with open(os.path.join(args.log_dir, f'val_precision_{args.dataset.shift.split("-")[0]}-'
-                                         f'{args.dataset.shift.split("-")[-1]}.txt'), 'a+') as f:
-        f.write("[%d/%d]\tAcc@top1: %.2f%%\n" % (it, args.train.num_iter, test_results['top1']))
-
-    return test_results
-
 
 if __name__ == '__main__':
     main()

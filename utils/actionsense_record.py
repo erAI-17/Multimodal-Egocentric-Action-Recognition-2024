@@ -11,7 +11,7 @@ class ActionSenseRecord(VideoRecord):
     
     @property
     def uid(self):
-        return self._series['uid']
+        return int(self._series['uid'])
     
     @property
     def subjectid(self):
@@ -19,12 +19,11 @@ class ActionSenseRecord(VideoRecord):
 
     @property
     def start_frame(self):
-        return int(self._series['start_frame'] - 1)
+        return self._series['start_frame']
 
     @property
     def end_frame(self):
-        return int(self._series['stop_frame'] - 2)
-
+        return self._series['stop_frame']
 
     @property
     def num_frames(self):

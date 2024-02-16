@@ -375,9 +375,9 @@ class ActionVisionDataset(data.Dataset, ABC):
             frames[m] = img
 
         if self.additional_info:
-            return frames, label, record.uid
+            return frames, label, record.subjectid, record.uid
         else:
-            return frames, label
+            return frames, label, record.subjectid, record.uid
 
     def get(self, modality, record, indices):
         images = list()
@@ -439,9 +439,4 @@ class ActionVisionDataset(data.Dataset, ABC):
             raise NotImplementedError("Modality not implemented")
 
     def __len__(self):
-        return len(self.record_list)
-
-
-
-#class ActionSenseDataset(data.Dataset, ABC):
-   
+            return len(self.record_list)
