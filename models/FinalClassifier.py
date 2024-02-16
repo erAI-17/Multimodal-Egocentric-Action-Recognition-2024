@@ -143,4 +143,23 @@ class TRN(torch.nn.Module):
         return list(itertools.combinations([i for i in range(num_frames)], num_frames_relation))
 
 
-   
+###############
+#ACTION-NET MODELS
+##############
+class LSTM_EMG(nn.Module):
+    def __init__(self, num_layers=1):
+        num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
+        super(LSTM_EMG, self).__init__()
+        self.lstm = nn.LSTM(input_size=16, hidden_size=512, num_layers=1, batch_first=True)
+        self.dropout = nn.Dropout(args.models.RGB.dropout)
+        self.relu = nn.ReLU()
+        self.fc = nn.Linear(hidden_size, num_classes)
+
+    def forward(self, x):
+        x = x.float() #It receives float64 but can work only on float32
+        out, _ = self.lstm(x)
+        out = self.dropout(out)
+        out = self.relu(out)
+        out = self.fc(out[:, -1, :]) # extract last output of the sequence (the one obtained after all the timesteps)
+        return out, {}
+    
