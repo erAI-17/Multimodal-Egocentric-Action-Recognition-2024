@@ -19,11 +19,12 @@ class ActionSenseRecord(VideoRecord):
 
     @property
     def start_frame(self):
-        return int(self._series['start'] - 1)
+        return int(self._series['START_FRAME'] - 1)
 
     @property
     def end_frame(self):
-        return int(self._series['stop'] - 2)
+        return int(self._series['STOP_FRAME'] - 2)
+
 
     @property
     def num_frames(self):
