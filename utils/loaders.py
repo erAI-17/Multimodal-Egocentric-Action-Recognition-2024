@@ -2,6 +2,7 @@ import glob
 from abc import ABC
 import pandas as pd
 from .epic_record import EpicVideoRecord
+from utils.actionsense_record import ActionSenseRecord
 import torch.utils.data as data
 from PIL import Image
 from numpy.random import randint
