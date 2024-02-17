@@ -7,7 +7,7 @@ import torch.utils.data as data
 from PIL import Image
 from numpy.random import randint
 import numpy as np
-import osfra
+import os
 import os.path
 from utils.logger import logger
 import math
