@@ -269,16 +269,17 @@ class ActionVisionDataset(data.Dataset, ABC):
             self.model_features = None
             for m in self.modalities:
                 # load features for each modality
-                model_features = pd.DataFrame(pd.read_pickle(os.path.join(self.dataset_conf[m].features_name +
-                                                                          pickle_name)))[["uid", "features_" + m]]
+                if m == 'RGB':
+                    model_features = pd.DataFrame(pd.read_pickle(os.path.join(self.dataset_conf[m].features_name + "_" +
+                                                                          pickle_name))['features'])[["uid", "features_" + m]]
+                elif m=='EMG':    
+                    model_features = pd.DataFrame(pd.read_pickle(os.path.join(self.dataset_conf[m].features_name + 
+                                                                            pickle_name)))[["uid", "features_" + m]]
                 if self.model_features is None:
                     self.model_features = model_features
-                #!else:
-                #!    self.model_features = pd.merge(self.model_features, model_features, how="inner", on="uid")
-
-            #!self.model_features = pd.merge(self.model_features, self.list_file, how="inner", on="uid")
-
-
+                else:
+                    self.model_features = pd.merge(self.model_features, model_features, how="inner", on="uid")
+            
     def _get_train_indices(self, record, modality):
         indices = []    
         if self.dense_sampling[modality]: 
