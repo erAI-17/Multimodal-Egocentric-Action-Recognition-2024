@@ -18,19 +18,15 @@ train:
   num_clips: ??? #5 #10
   dense_sampling: # sampling version adopted in training for each modality
     RGB: ??? #True #False
-    EMG: ??? #True #False
   num_frames_per_clip: # number of frames adopted in training for each modality
     RGB: ??? #16 #25
-    EMG: ??? #16 #25
 
 test:
   num_clips: ??? # number of clips in testing
   dense_sampling: # sampling version adopted in test for each modality
     RGB: ??? #True #False
-    EMG: ??? #True #False
   num_frames_per_clip: # number of frames adopted in test for each modality
     RGB: ??? #16 #25
-    EMG: ??? #16 #25
 
 dataset:
   annotations_path: ??? #train_val #Action-Net/data/EMG_datapreprocessed_data 
