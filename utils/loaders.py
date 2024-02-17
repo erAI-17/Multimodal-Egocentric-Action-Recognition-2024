@@ -7,7 +7,7 @@ import torch.utils.data as data
 from PIL import Image
 from numpy.random import randint
 import numpy as np
-import os
+import osfra
 import os.path
 from utils.logger import logger
 import math
@@ -180,7 +180,7 @@ class EpicKitchensDataset(data.Dataset, ABC):
 
         if modality == 'RGB' or modality == 'RGBDiff':
             # here the offset for the starting index of the sample is added
-
+            tmpl  = "img_{:010d}.jpg"
             idx_untrimmed = record.start_frame + idx
             try:
                 img = Image.open(os.path.join(data_path, record.untrimmed_video_name, tmpl.format(idx_untrimmed))) \
