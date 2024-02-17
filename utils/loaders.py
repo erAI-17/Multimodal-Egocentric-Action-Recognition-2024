@@ -180,7 +180,6 @@ class EpicKitchensDataset(data.Dataset, ABC):
 
         if modality == 'RGB' or modality == 'RGBDiff':
             # here the offset for the starting index of the sample is added
-            tmpl  = "img_{:010d}.jpg"
             idx_untrimmed = record.start_frame + idx
             try:
                 img = Image.open(os.path.join(data_path, record.untrimmed_video_name, tmpl.format(idx_untrimmed))) \
