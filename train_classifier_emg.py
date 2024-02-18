@@ -231,7 +231,7 @@ def validate(model, val_loader, device, it, num_classes):
 
             for m in modalities:
                 batch = data[m].shape[0]
-                logits[m] = torch.zeros((args.test.num_clips, batch, num_classes)).to(device)
+                logits[m] = torch.zeros((1, batch, num_classes)).to(device) #1 #args.test.num_clips
 
             clip = {}
             
@@ -248,9 +248,10 @@ def validate(model, val_loader, device, it, num_classes):
 
             model.compute_accuracy(logits, label)
 
-            if (i_val + 1) % (len(val_loader) // 5) == 0:
-                logger.info("[{}/{}] top1= {:.3f}% top5 = {:.3f}%".format(i_val + 1, len(val_loader),
-                                                                          model.accuracy.avg[1], model.accuracy.avg[5]))
+            if len(val_loader) >= 5:
+                if (i_val + 1) % (len(val_loader) // 5) == 0:
+                    logger.info("[{}/{}] top1= {:.3f}% top5 = {:.3f}%".format(i_val + 1, len(val_loader),
+                                                                            model.accuracy.avg[1], model.accuracy.avg[5]))
 
         class_accuracies = [(x / y) * 100  if y > 0 else 0.0 for x, y in zip(model.accuracy.correct, model.accuracy.total)]
         logger.info('Final accuracy: top1 = %.2f%%\ttop5 = %.2f%%' % (model.accuracy.avg[1],
