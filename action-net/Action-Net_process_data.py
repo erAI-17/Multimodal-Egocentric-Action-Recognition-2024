@@ -5,16 +5,14 @@ import os
 from scipy.signal import butter, lfilter # for filtering
 
 
-EMG_data_path = 'Action-Net/data/EMG_data'
-annotations_path = 'Action-Net/data/annotations'
+EMG_data_path = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/Action-Net-EMG/'
+annotations_path = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/annotations/'
 
-
-#!!'S03_1.pkl' TOO LOW FREQUENCY
 subjects = ('S00_2.pkl', 'S01_1.pkl', 'S02_2.pkl' , 'S02_3.pkl','S02_4.pkl', 'S03_1.pkl' ,'S03_2.pkl','S04_1.pkl','S05_2.pkl','S06_1.pkl','S06_2.pkl','S07_1.pkl', 'S08_1.pkl', 'S09_2.pkl')
 #subjects = ('S03_1.pkl','S00_2.pkl')
 
 
-def lowpass_filter(data, cutoff, Fs, order=4):
+def lowpass_filter(data, cutoff, Fs, order=5):
     '''
     Function that applies a low-pass filter to a given data set allowing you to remove high-frequency noise or unwanted frequency components from the data
     by filtering input data removing the frequencies above the cutoff frequency.
@@ -152,7 +150,7 @@ def Augmenting(data):
         start_ts = row[5] + np.arange(num_intervals[i]) * 5
         stop_ts = start_ts + 5
 
-        mean_length = 900
+        mean_length = 800
         for j in range(num_intervals[i]-1):
             filtered_myo_left_indices = np.where((start_ts[j] <= row[7]) & (row[7] < stop_ts[j]))[0] #(801,)
             
@@ -284,16 +282,20 @@ def handler_S04(AN_train_final, AN_test_final):
 
     #Inner join by indexes and file
     S04_train = annotations_train.merge(sorted_merged_df, on=['index','file'], how='inner')
-    S04__test = annotations_test.merge(sorted_merged_df, on=['index', 'file'], how='inner')
+    S04_test = annotations_test.merge(sorted_merged_df, on=['index', 'file'], how='inner')
+    
+    #shuffle rows 
+    S04_train = S04_train.sample(frac=1).reset_index(drop=True)
+    S04_test = S04_test.sample(frac=1).reset_index(drop=True)
 
     # Save preprocessed dataset for SO4 formatted as uid, subjectid, features_EMG, features_RGB , label
-    filepath = 'Action-Net/data/S04_train.pkl'
-    with open(filepath, 'wb') as pickle_file:
+    output_filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/S04_train.pkl'
+    with open(output_filepath, 'wb') as pickle_file:
         pickle.dump(S04_train, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    filepath = 'Action-Net/data/S04_test.pkl'
-    with open(filepath, 'wb') as pickle_file:
-        pickle.dump(S04__test, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+    output_filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/S04_test.pkl'
+    with open(output_filepath, 'wb') as pickle_file:
+        pickle.dump(S04_test, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
         
     print(S04_train.head())
     print(S04_train.shape)
@@ -309,7 +311,7 @@ if __name__ == '__main__':
 
     ##Convert the datasets to NumPy arrays for better efficiency
     ##schema: ['index', 'file', 'description_x', 'labels', 'description_y', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
-    AN_train = AN_train.copy().to_numpy() #[527*11]
+    AN_train = AN_train.copy().to_numpy() 
     AN_test = AN_test.copy().to_numpy()
     
     #Introduce baselines actions #!doesn't find any baseline for this dataset
@@ -334,10 +336,6 @@ if __name__ == '__main__':
     
     myo_readings_stacked_test = myo_readings_stacking(AN_test[:,8], AN_test[:,10])
     AN_test_final['features_EMG'] = [row for row in myo_readings_stacked_test]
-    
-    # #!DELETE LINES WITH file=S03_1.pkl because I cannot filter them (too low frequency) to 3058 samples
-    #AN_train_final = AN_train_final[AN_train_final['file'] != 'S03_1.pkl']
-    #AN_test_final = AN_test_final[AN_test_final['file'] != 'S03_1.pkl']
     
     #There are some activities with slightly different names that I want to merge 
     activities_renamed = {
@@ -369,21 +367,19 @@ if __name__ == '__main__':
     myo_right_readings = AN_train_final['myo_right_readings']
     features_EMG = AN_train_final['features_EMG']
 
+    #shuffle rows 
+    AN_train_final = AN_train_final.sample(frac=1).reset_index(drop=True)
+    AN_test_final = AN_test_final.sample(frac=1).reset_index(drop=True)
     
     #Save preprocessed dataset into pkl file FOR EVERY SUBJECT formatted as {features: [{uid: 1 , subjectid: S00_2, features_EMG: [] , labels: }]}
-    filepath = 'Action-Net/data/SXY_train.pkl'
-    with open(filepath, 'wb') as pickle_file:
+    output_filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/SXY_train.pkl'
+    with open(output_filepath, 'wb') as pickle_file:
         pickle.dump(AN_train_final, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    filepath = 'Action-Net/data/SXY_test.pkl'
-    with open(filepath, 'wb') as pickle_file:
+    output_filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/SXY_test.pkl'
+    with open(output_filepath, 'wb') as pickle_file:
         pickle.dump(AN_test_final, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
     #Produce annotations for S04 also with start and stop frames for RGB flow
     handler_S04(AN_train_final, AN_test_final)
     
-    # df = pd.read_pickle("Action-net/data/SXY_train.pkl")
-    # print(df.head())
-    # print(df.shape)
-    # print(df.columns)   
-    # print(df['features_EMG'])
