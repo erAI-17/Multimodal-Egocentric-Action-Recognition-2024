@@ -225,17 +225,15 @@ def Preprocessing(dataset):
         myo_left_readings = lowpass_filter(myo_left_readings, filter_cutoff_Hz, Fs_left)
         myo_right_readings= lowpass_filter(myo_right_readings, filter_cutoff_Hz, Fs_right)
 
-        #normalize
+        #normalize with global max and min
         reshaped_myo_left_readings = np.concatenate(myo_left_readings, axis=0)
         reshaped_myo_right_readings = np.concatenate(myo_left_readings, axis=0)
+        myo_left_readings= (myo_left_readings) / ((np.max(reshaped_myo_left_readings)-np.min(reshaped_myo_left_readings))/2)
+        myo_right_readings = (myo_right_readings) / ((np.max(reshaped_myo_right_readings)-np.min(reshaped_myo_right_readings))/2)
 
-        myo_left_readings= (myo_left_readings - np.min(reshaped_myo_left_readings)) / (np.max(reshaped_myo_left_readings)-np.min(reshaped_myo_left_readings)/2)
-        myo_right_readings = (myo_right_readings - np.min(reshaped_myo_right_readings)) / (np.max(reshaped_myo_right_readings)-np.min(reshaped_myo_right_readings)/2)
-
-        #shift to [-1,1]
+        #shift to [-1,1] with global min
         reshaped_myo_left_readings = np.concatenate(myo_left_readings, axis=0)
         reshaped_myo_right_readings = np.concatenate(myo_right_readings, axis=0)
-
         myo_left_readings = myo_left_readings - np.min(reshaped_myo_left_readings) -1
         myo_right_readings = myo_right_readings - np.min(reshaped_myo_right_readings) -1
 
