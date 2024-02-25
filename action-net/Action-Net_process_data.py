@@ -139,7 +139,7 @@ def Augmenting(data):
 
     # Compute, for all rows, the number of 5-second intervals to split that row into
     new_rows = []
-    num_intervals = ((data[:, 6] - data[:, 5]) / 5).astype(int)
+    num_intervals =  np.ceil((data[:, 6] - data[:, 5]) / 5).astype(int)
 
     for i, row in enumerate(data):
         if num_intervals[i] == 0:    #if action is smaller than 5 sec, drop it
@@ -150,7 +150,7 @@ def Augmenting(data):
         start_ts = row[5] + np.arange(num_intervals[i]) * 5
         stop_ts = start_ts + 5
 
-        mean_length = 800
+        mean_length = 1000
         for j in range(num_intervals[i]-1):
             filtered_myo_left_indices = np.where((start_ts[j] <= row[7]) & (row[7] < stop_ts[j]))[0] #(801,)
             
