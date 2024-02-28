@@ -231,7 +231,7 @@ def validate(model, val_loader, device, it, num_classes):
 
             for m in modalities:
                 batch = data[m].shape[0]
-                logits[m] = torch.zeros((1, batch, num_classes)).to(device) #1 #args.test.num_clips
+                logits[m] = torch.zeros((batch, num_classes)).to(device) #1 #args.test.num_clips
 
             clip = {}
             
