@@ -186,7 +186,7 @@ def Preprocessing(data):
 
         #shift to [-1,1] with global min
         myo_left_readings = myo_left_readings - np.min(myo_left_readings) -1
-        myo_right_readings = myo_right_readings - np.min(myo_left_readings) -1
+        myo_right_readings = myo_right_readings - np.min(myo_right_readings) -1
 
         #*update original actions with preprocessed data
         for i, action in enumerate(subject_data):
