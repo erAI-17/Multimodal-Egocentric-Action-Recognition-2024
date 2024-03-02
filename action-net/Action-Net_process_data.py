@@ -44,13 +44,18 @@ def lowpass_filter(data, cutoff, Fs, order=5):
     #The  lfilter  function takes the filter coefficients, the input data, and the axis along which the filter should be applied as arguments.
     #In this case, the filter is applied along the columns of the input data, as indicated by the  axis=1  argument.
     
-    filtered_data = np.zeros_like(data)
-    for channel in range(data.shape[2]):
-        channel_serie = data[:,:,channel].flatten()
-        filtered_serie = lfilter(b,a, channel_serie)
-        filtered_data[:,:,channel] = filtered_serie.reshape(data.shape[0], data.shape[1])
+    # filtered_data = np.zeros_like(data)
+    # for channel in range(data.shape[2]):
+    #     channel_serie = data[:,:,channel].flatten()
+    #     filtered_serie = lfilter(b,a, channel_serie)
+    #     filtered_data[:,:,channel] = filtered_serie.reshape(data.shape[0], data.shape[1])
+        
+    # y = lfilter(b, a, data.T).T
     
-    y = lfilter(b, a, data.T).T
+    filtered_data = np.zeros_like(data)
+    for action in range(data.shape[0]):
+        for channel in range(data.shape[2]):
+            filtered_data[action,:,channel] = lfilter(b,a, data[action,:,channel])
     
     # y = np.empty_like(data)
     # for i,x in enumerate(data):
@@ -157,9 +162,9 @@ def Augmenting(data):
     
     return augmented_data
 
-
-def Preprocessing(data):
-    #schema: ['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
+def Preprocessing(data, flag = ''):
+    global min_left_train, max_left_train, min_right_train, max_right_train
+    # data schema: ['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
     #Define filtering parameter.
     filter_cutoff_Hz = 5
     #absolute + filter + normalize SEPARATELY the myo-right and myo-left readings SEPARATELY for each subject
@@ -190,19 +195,32 @@ def Preprocessing(data):
         myo_left_readings = lowpass_filter(myo_left_readings, filter_cutoff_Hz, Fs_left)
         myo_right_readings= lowpass_filter(myo_right_readings, filter_cutoff_Hz, Fs_right)
         
-        #normalize with global max and min
-        myo_left_readings= (myo_left_readings) / ((np.max(myo_left_readings)-np.min(myo_left_readings))/2)
-        myo_right_readings = (myo_right_readings) / ((np.max(myo_right_readings)-np.min(myo_right_readings))/2)
-
-        #shift to [-1,1] with global min
-        myo_left_readings = myo_left_readings - np.min(myo_left_readings) -1
-        myo_right_readings = myo_right_readings - np.min(myo_right_readings) -1
+        # #normalize with global max and min
+        # myo_left_readings= (myo_left_readings) / ((np.max(myo_left_readings)-np.min(myo_left_readings))/2)
+        # myo_right_readings = (myo_right_readings) / ((np.max(myo_right_readings)-np.min(myo_right_readings))/2)
+        # #shift to [-1,1] with global min
+        # myo_left_readings = myo_left_readings - np.min(myo_left_readings) -1
+        # myo_right_readings = myo_right_readings - np.min(myo_right_readings) -1
+        
+        if flag == 'train':
+            min_left_train = np.min(myo_left_readings)
+            max_left_train = np.max(myo_left_readings)
+            min_right_train = np.min(myo_right_readings)
+            max_right_train = np.max(myo_right_readings)
+            
+        #other version 
+        myo_left_readings= 2*(myo_left_readings - min_left_train) / (max_left_train - min_left_train) -1
+        myo_right_readings = 2*(myo_right_readings - min_right_train) / (max_right_train - min_right_train) -1
+        
+        # #NORMALIZE AND SHIFT CHANNEL BY CHANNEL
+        # myo_left_readings= 2*((myo_left_readings-myo_left_readings.min(axis=(0, 1), keepdims=True)) / ((myo_left_readings.max(axis=(0, 1), keepdims=True)-myo_left_readings.min(axis=(0, 1), keepdims=True)))) -1
+        # myo_right_readings = 2*((myo_right_readings-myo_right_readings.min(axis=(0, 1), keepdims=True)) / ((myo_right_readings.max(axis=(0, 1), keepdims=True)-myo_right_readings.min(axis=(0, 1), keepdims=True)))) -1
 
         #*update original actions with preprocessed data
         for i, action in enumerate(subject_data):
             action['myo_left_readings'] = myo_left_readings[i]
             action['myo_right_readings'] = myo_right_readings[i]
-    
+
     return data
 
 

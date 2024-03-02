@@ -160,7 +160,6 @@ class LSTM_EMG(nn.Module):
         x = x.float() #It receives float64 but can work only on float32
         out, _ = self.lstm(x)
         out = self.dropout(out)
-        out = self.relu(out)
         out = self.fc(out[:, -1, :]) # extract last output of the sequence (the one obtained after all the timesteps)
         return out, {}
     
