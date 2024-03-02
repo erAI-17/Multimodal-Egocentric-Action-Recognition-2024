@@ -117,7 +117,8 @@ def Augmenting(data):
                 padding_length = n_readings - filtered_myo_left_indices.shape[0]
                 filtered_myo_left_ts = np.array([action['myo_left_timestamps'][i] for i in filtered_myo_left_indices])
                 filtered_myo_left_readings = np.array([action['myo_left_readings'][i] for i in filtered_myo_left_indices]) 
-                #add 0 paddding to readings. Actually, we need also to add entries in the ts array by interpolating new reading timestamps, but we never use that array 
+                #add 0 paddding to readings. Actually, we need also to add entries in the ts array by interpolating new reading timestamps, but we never use that array, so I just pad with 0s 
+                filtered_myo_left_ts = np.pad(filtered_myo_left_ts, (0, padding_length), 'constant', constant_values=(0))
                 filtered_myo_left_readings = np.pad(filtered_myo_left_readings, ((0, padding_length), (0,0)), 'constant', constant_values=(0))
             
             #!myo right augment
@@ -133,6 +134,7 @@ def Augmenting(data):
                 filtered_myo_right_ts = np.array([action['myo_right_timestamps'][i] for i in filtered_myo_right_indices])
                 filtered_myo_right_readings = np.array([action['myo_right_readings'][i] for i in filtered_myo_right_indices])
                 #add 0 paddding to readings. Actually, we need also to add entries in the ts array by interpolating new reading timestamps, but we never use that array 
+                filtered_myo_right_ts = np.pad(filtered_myo_right_ts, (0, padding_length), 'constant', constant_values=(0))
                 filtered_myo_right_readings = np.pad(filtered_myo_right_readings, ((0, padding_length), (0,0)), 'constant', constant_values=(0))
                 
     
