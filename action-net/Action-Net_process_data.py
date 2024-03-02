@@ -289,7 +289,7 @@ if __name__ == '__main__':
     
     #Filter, Normalize and Augment 
     AN_train = Preprocessing(AN_train, flag='train')
-    AN_test = Preprocessing(AN_train, flag='test')
+    AN_test = Preprocessing(AN_test, flag='test')
     
     #Stack the myo_left_readings and myo_right_readings into a new key "features_EMG" 
     AN_train = Stacking(AN_train) #AN_train_base #AN_train_aug
