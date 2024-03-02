@@ -108,28 +108,34 @@ def Augmenting(data):
             filtered_myo_left_indices = np.where((start_ts[j] <= action['myo_left_timestamps']) & (action['myo_left_timestamps'] < stop_ts[j]))[0]
             
             if filtered_myo_left_indices.shape[0] > n_readings:
+                #cut
                 filtered_myo_left_indices = filtered_myo_left_indices[:n_readings]
+                filtered_myo_left_ts = np.array([action['myo_left_timestamps'][i] for i in filtered_myo_left_indices])
+                filtered_myo_left_readings = np.array([action['myo_left_readings'][i] for i in filtered_myo_left_indices]) 
+                
             elif filtered_myo_left_indices.shape[0] < n_readings:
                 padding_length = n_readings - filtered_myo_left_indices.shape[0]
-                last_value = filtered_myo_left_indices[-1]
-                filtered_myo_left_indices = np.pad(filtered_myo_left_indices, (0, padding_length), mode='constant', constant_values=(0, last_value))
-            
-            filtered_myo_left_ts = np.array([action['myo_left_timestamps'][i] for i in filtered_myo_left_indices])
-            filtered_myo_left_readings = np.array([action['myo_left_readings'][i] for i in filtered_myo_left_indices]) 
+                filtered_myo_left_ts = np.array([action['myo_left_timestamps'][i] for i in filtered_myo_left_indices])
+                filtered_myo_left_readings = np.array([action['myo_left_readings'][i] for i in filtered_myo_left_indices]) 
+                #add 0 paddding to readings. Actually, we need also to add entries in the ts array by interpolating new reading timestamps, but we never use that array 
+                filtered_myo_left_readings = np.pad(filtered_myo_left_readings, ((0, padding_length), (0,0)), 'constant', constant_values=(0))
             
             #!myo right augment
             filtered_myo_right_indices = np.where((start_ts[j] <= action['myo_right_timestamps']) & (action['myo_right_timestamps'] < stop_ts[j]))[0] 
             
             if filtered_myo_right_indices.shape[0] > n_readings:
                 filtered_myo_right_indices = filtered_myo_right_indices[:n_readings]
+                filtered_myo_right_ts = np.array([action['myo_right_timestamps'][i] for i in filtered_myo_right_indices])
+                filtered_myo_right_readings = np.array([action['myo_right_readings'][i] for i in filtered_myo_right_indices])
+            
             elif filtered_myo_right_indices.shape[0] < n_readings:
                 padding_length = n_readings - filtered_myo_right_indices.shape[0]
-                last_value = filtered_myo_right_indices[-1]
-                filtered_myo_right_indices = np.pad(filtered_myo_right_indices, (0, padding_length), mode='constant', constant_values=(0, last_value))
+                filtered_myo_right_ts = np.array([action['myo_right_timestamps'][i] for i in filtered_myo_right_indices])
+                filtered_myo_right_readings = np.array([action['myo_right_readings'][i] for i in filtered_myo_right_indices])
+                #add 0 paddding to readings. Actually, we need also to add entries in the ts array by interpolating new reading timestamps, but we never use that array 
+                filtered_myo_right_readings = np.pad(filtered_myo_right_readings, ((0, padding_length), (0,0)), 'constant', constant_values=(0))
                 
-            filtered_myo_right_ts = np.array([action['myo_right_timestamps'][i] for i in filtered_myo_right_indices])
-            filtered_myo_right_readings = np.array([action['myo_right_readings'][i] for i in filtered_myo_right_indices])
-
+    
             # Create new action
             new_action = {'index': action['index'],
                           'file': action['file'],
@@ -144,6 +150,8 @@ def Augmenting(data):
                           }
             
             augmented_data.append(new_action)
+            
+    #!REBALANCE HERE
     
     return augmented_data
 

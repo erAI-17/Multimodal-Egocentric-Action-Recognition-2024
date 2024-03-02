@@ -170,7 +170,7 @@ class MLP_EMG(nn.Module):
         input_size = 16
         hidden_size = 512
         num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
-        super(MLP, self).__init__()
+        super(MLP_EMG, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, num_classes)
