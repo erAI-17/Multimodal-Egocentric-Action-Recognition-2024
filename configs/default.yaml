@@ -12,9 +12,9 @@ feat_avg: ??? #if true it computes the average of the features and feed to MLP. 
 
 # training parameters
 train:
-  num_iter: 3000 # number of training iterations with total_batch size
-  lr_steps: 2900 # steps before reducing learning rate
-  eval_freq: 1000 # evaluation frequency
+  num_iter: 500 # number of training iterations with total_batch size
+  lr_steps: 490 # steps before reducing learning rate
+  eval_freq: 250 # evaluation frequency
   num_clips: ??? #5 #10
   dense_sampling: # sampling version adopted in training for each modality
     RGB: ??? #True #False
