@@ -414,27 +414,7 @@ class ActionVisionDataset(data.Dataset, ABC):
                 else:
                     raise FileNotFoundError
             return [img]
-        
-        elif modality == 'EMG':  
-            #get the readings (left and right) associated to index selected from the interval
-            #stop-start. Since the start->stop interval and the len(myo reading) may be different
-            # (not sinchronized by some millisecond): if index overshoots, I take the last reading
-            if idx >= len(record.myo_left_readings):
-                myo_left_reading = record.myo_left_readings[-1]
-            else:
-                myo_left_reading = record.myo_left_readings[idx] #(8,)  
-                
-            if idx >= len(record.myo_right_readings):
-                myo_right_readings = record.myo_right_readings[-1] #(8,)
-            else:
-                myo_right_readings = record.myo_right_readings[idx] #(8,) 
-                
-            #stack the left-right readings into 1*16
-            #if they don't match size, I take intersection!
-            combined_myo = np.hstack((myo_right_readings, myo_left_reading))  #(16,) # Horizontally stack the arrays
-        
-            return [combined_myo]
-        
+
         else:
             raise NotImplementedError("Modality not implemented")
 

@@ -39,20 +39,4 @@ class ActionSenseRecord(VideoRecord):
     @property
     def features_EMG(self):
         return self._series['features_EMG']
-    
-    @property
-    def myo_left_readings(self):
-        return self._series['myo_left_readings']
-    
-    @property
-    def myo_right_readings(self):
-        return self._series['myo_right_readings']
-    
-    @property
-    def myo_left_ts(self):
-        return self._series['myo_left_timestamps']
-    
-    @property
-    def myo_right_ts(self):
-        return self._series['myo_right_timestamps']
-    
+
