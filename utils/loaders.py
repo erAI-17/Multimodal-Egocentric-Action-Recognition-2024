@@ -255,7 +255,7 @@ class ActionVisionDataset(data.Dataset, ABC):
             pickle_name = split + "_test.pkl"
 
         #*READ ANNOTATIONS!! Action-Net/data/EMG_datapreprocessed_data
-        self.list_file = pd.read_pickle(os.path.join(self.dataset_conf.annotations_path, 'SXY_train.pkl')) #pickle_name
+        self.list_file = pd.read_pickle(os.path.join(self.dataset_conf.annotations_path, pickle_name)) #pickle_name  #'SXY_train.pkl'
         logger.info(f"Dataloader for {split}-{self.mode} with {len(self.list_file)} samples generated")
         
         #**each record contains its own annotation info (1 line from a file in "train_val/*.pkl") and the whole JSON "dataset" from .yaml (which contains the path where to retrieve the associated video!)
@@ -270,10 +270,10 @@ class ActionVisionDataset(data.Dataset, ABC):
                 # load features for each modality
                 if m == 'RGB':
                     model_features = pd.DataFrame(pd.read_pickle(os.path.join(self.dataset_conf[m].features_name + "_" +
-                                                                          'SXY_train.pkl'))['features'])[["uid", "features_" + m]] #pickle_name
+                                                                          pickle_name))['features'])[["uid", "features_" + m]] #pickle_name  #'SXY_train.pkl'
                 elif m=='EMG':    
                     model_features = pd.DataFrame(pd.read_pickle(os.path.join(self.dataset_conf[m].features_name + 
-                                                                            'SXY_train.pkl')))[["uid", "features_" + m]] #pickle_name
+                                                                            pickle_name)))[["uid", "features_" + m]] #pickle_name  #'SXY_train.pkl'
                 if self.model_features is None:
                     self.model_features = model_features
                 else:

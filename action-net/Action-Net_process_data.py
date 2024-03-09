@@ -11,6 +11,10 @@ annotations_path = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/
 subjects = ('S00_2.pkl', 'S01_1.pkl', 'S02_2.pkl' , 'S02_3.pkl','S02_4.pkl', 'S03_1.pkl' ,'S03_2.pkl','S04_1.pkl','S05_2.pkl','S06_1.pkl','S06_2.pkl','S07_1.pkl', 'S08_1.pkl', 'S09_2.pkl')
 #subjects = ('S03_1.pkl','S00_2.pkl')
 
+min_left_train = 0
+max_left_train = 0
+min_right_train = 0 
+max_right_train = 0
 
 def lowpass_filter(data, cutoff, Fs, order=5):
     '''
@@ -28,7 +32,6 @@ def lowpass_filter(data, cutoff, Fs, order=5):
     '''
 
     # Nyquist frequency represents the highest frequency that can be accurately represented in the sampled data (set to half of the sampling frequency).
-    Fs = 160 #!GIVEN
     nyq = 0.5 * Fs
     #This normalization step ensures that the cutoff frequency is expressed as a fraction of the Nyquist frequency, which is a standard practice in signal processing.
     normal_cutoff = cutoff / nyq
@@ -37,33 +40,35 @@ def lowpass_filter(data, cutoff, Fs, order=5):
     #The 'butter' function takes the filter order, the normalized cutoff frequency, and the filter type as arguments.
     #In this case, the filter type is specified as 'low', indicating a low-pass filter, and the
     #analog  parameter is set to  False , indicating that we are designing a digital filter
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    b, a = butter(order, normal_cutoff, btype='low')
 
     #filter coefficients (b,a) are then used to apply the low-pass filter to the input data.
     #This is done using the  lfilter  function from the  scipy.signal  module.
     #The  lfilter  function takes the filter coefficients, the input data, and the axis along which the filter should be applied as arguments.
     #In this case, the filter is applied along the columns of the input data, as indicated by the  axis=1  argument.
+    
+    # y = np.zeros_like(data)
+    # for action in range(data.shape[0]):
+    #     for channel in range(data.shape[2]):
+    #         y[action,:,channel] = lfilter(b,a, data[action,:,channel])
+    
 
-    #global, channel by channel
-    filtered_data = np.zeros_like(data)
-    for channel in range(data.shape[2]):
-        channel_serie = data[:,:,channel].flatten()
-        filtered_serie = lfilter(b,a, channel_serie)
-        filtered_data[:,:,channel] = filtered_serie.reshape(data.shape[0], data.shape[1])
-        
-    # y = lfilter(b, a, data.T).T
+    # y = np.zeros_like(data)
+    # for channel in range(data.shape[2]):
+    #     y[:,:,channel] = lfilter(b,a, data[:,:,channel])
 
-    #action by action, channel by channel
-    #filtered_data = np.zeros_like(data)
-    #for action in range(data.shape[0]):
-    #    for channel in range(data.shape[2]):
-    #        filtered_data[action,:,channel] = lfilter(b,a, data[action,:,channel])
+    # y = np.zeros_like(data, dtype=float)
+    # for i in range(8):  # 8 colonne
+    #     y[:, i] = filtfilt(b, a, data[:, i])
+    
+    y = lfilter(b, a, data.T).T
     
     # y = np.empty_like(data)
     # for i,x in enumerate(data):
     #     y[i] = lfilter(b, a, x.T).T
       
-    return filtered_data
+    return y
+
 
 
 def split_train_test():
@@ -98,54 +103,124 @@ def split_train_test():
     return AN_train, AN_test
 
 
+def pre_Preprocessing(data, flag = ''):
+    global min_left_train, max_left_train, min_right_train, max_right_train
+    # data schema: ['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
+    #Define filtering parameter.
+    filter_cutoff_Hz = 5
+      
+    #absolute + filter + normalize SEPARATELY the myo-right and myo-left readings SEPARATELY for each subject
+    for subjectid in subjects: #SEPARATELY FOR EACH SUBJECT
+        subject_data = [action for action in data if action.get('file') == subjectid]
+        
+        if len(subject_data)  == 0: #in the test split there are no samples for every subject
+            continue
+        
+        #internally sort actions of this subject because of timestamps when computing Fs
+        subject_data = sorted(subject_data, key= lambda action: action['start'])
+        
+        for action in subject_data:
+            for key in ['myo_right', 'myo_left']:
+                #extract data
+                action_data =  np.array(action[key +'_readings'])
+                ts = np.array(action[key +'_timestamps'])
+
+                #last action, last timestamp - first action, first timestamp
+                Fs= ((ts.size) - 1) / (ts[-1] - ts[0])
+            
+                action_data = np.abs(action_data)
+
+                #filter each of 8 channels separately
+                y =  lowpass_filter(action_data, filter_cutoff_Hz, Fs)
+                
+                y = y / ((np.amax(y) - np.amin(y))/2)
+                y = y - np.amin(y) - 1
+
+                # #NORMALIZE GLOBAL, CHANNEL BY CHANNEL
+                # if flag == 'train':
+                #     min_train = np.min(y, axis=0, keepdims=True) if 'min_train' not in globals() else np.minimum(min_train, np.min(y, axis=0, keepdims=True))
+                #     max_train = np.max(y, axis=0, keepdims=True) if 'max_train' not in globals() else np.maximum(max_train, np.max(y, axis=0, keepdims=True))
+                # y = y / ((max_train - min_train)/2)
+                # y = y - min_train - 1    
+                
+                #*update original actions with preprocessed data
+                action[key + '_readings'] = y.tolist()
+
+    return data
+
+
 def Augmenting(data):
     #schema: ['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
     augmented_data = []
-
+    class_count = {}
     for action in data:
+        
         num_intervals = np.ceil((action['stop'] - action['start']) / 5).astype(int)
         
         # Compute the start and stop timesteps for each interval of this action
         start_ts = action['start'] + np.arange(num_intervals) * 5
         stop_ts = start_ts + 5
 
-        n_readings = 750
+        segment_length = 800
         for j in range(num_intervals):
+            skip_interval = False
             #!myo left augment
             filtered_myo_left_indices = np.where((start_ts[j] <= action['myo_left_timestamps']) & (action['myo_left_timestamps'] < stop_ts[j]))[0]
             
-            if filtered_myo_left_indices.shape[0] > n_readings:
-                #cut
-                filtered_myo_left_indices = filtered_myo_left_indices[:n_readings]
-                filtered_myo_left_ts = np.array([action['myo_left_timestamps'][i] for i in filtered_myo_left_indices])
-                filtered_myo_left_readings = np.array([action['myo_left_readings'][i] for i in filtered_myo_left_indices]) 
+            filtered_myo_left_indices = list(filtered_myo_left_indices)
+            #PAD
+            while len(filtered_myo_left_indices) < segment_length:
+                if filtered_myo_left_indices[0] > 0: # != 0
+                    filtered_myo_left_indices = [filtered_myo_left_indices[0]-1] + filtered_myo_left_indices
+                elif filtered_myo_left_indices[-1] < len(action['myo_left_timestamps'])-1:
+                    filtered_myo_left_indices.append(filtered_myo_left_indices[-1]+1)
+                else: #if cannot be extended from beginning nor from end, drop action
+                    skip_interval = True
+                    break
                 
-            elif filtered_myo_left_indices.shape[0] < n_readings:
-                padding_length = n_readings - filtered_myo_left_indices.shape[0]
-                filtered_myo_left_ts = np.array([action['myo_left_timestamps'][i] for i in filtered_myo_left_indices])
-                filtered_myo_left_readings = np.array([action['myo_left_readings'][i] for i in filtered_myo_left_indices]) 
-                #add 0 paddding to readings. Actually, we need also to add entries in the ts array by interpolating new reading timestamps, but we never use that array, so I just pad with 0s 
-                filtered_myo_left_ts = np.pad(filtered_myo_left_ts, (0, padding_length), 'constant', constant_values=(0))
-                filtered_myo_left_readings = np.pad(filtered_myo_left_readings, ((0, padding_length), (0,0)), 'constant', constant_values=(0))
+            #CUT    
+            while len(filtered_myo_left_indices) > segment_length:
+                filtered_myo_left_indices.pop()
+            filtered_myo_left_indices = np.array(filtered_myo_left_indices)
             
+            if skip_interval:
+                continue
+            
+            filtered_myo_left_indices = np.array(filtered_myo_left_indices)
+            #take data
+            filtered_myo_left_ts = np.array([action['myo_left_timestamps'][i] for i in filtered_myo_left_indices])
+            filtered_myo_left_readings = np.array([action['myo_left_readings'][i] for i in filtered_myo_left_indices]) 
+            
+
             #!myo right augment
             filtered_myo_right_indices = np.where((start_ts[j] <= action['myo_right_timestamps']) & (action['myo_right_timestamps'] < stop_ts[j]))[0] 
             
-            if filtered_myo_right_indices.shape[0] > n_readings:
-                filtered_myo_right_indices = filtered_myo_right_indices[:n_readings]
-                filtered_myo_right_ts = np.array([action['myo_right_timestamps'][i] for i in filtered_myo_right_indices])
-                filtered_myo_right_readings = np.array([action['myo_right_readings'][i] for i in filtered_myo_right_indices])
-            
-            elif filtered_myo_right_indices.shape[0] < n_readings:
-                padding_length = n_readings - filtered_myo_right_indices.shape[0]
-                filtered_myo_right_ts = np.array([action['myo_right_timestamps'][i] for i in filtered_myo_right_indices])
-                filtered_myo_right_readings = np.array([action['myo_right_readings'][i] for i in filtered_myo_right_indices])
-                #add 0 paddding to readings. Actually, we need also to add entries in the ts array by interpolating new reading timestamps, but we never use that array 
-                filtered_myo_right_ts = np.pad(filtered_myo_right_ts, (0, padding_length), 'constant', constant_values=(0))
-                filtered_myo_right_readings = np.pad(filtered_myo_right_readings, ((0, padding_length), (0,0)), 'constant', constant_values=(0))
+            filtered_myo_right_indices = list(filtered_myo_right_indices)
+            #PAD
+            while len(filtered_myo_right_indices) < segment_length:
+                if filtered_myo_right_indices[0] > 0:
+                    filtered_myo_right_indices = [filtered_myo_right_indices[0]-1] + filtered_myo_right_indices
+                elif filtered_myo_right_indices[-1] < len(action['myo_right_timestamps'])-1:
+                    filtered_myo_right_indices.append(filtered_myo_right_indices[-1]+1)
+                else: #if cannot be extended from beginning nor from end, drop action
+                    skip_interval = True
+                    break
                 
-    
-            # Create new action
+            #CUT    
+            while len(filtered_myo_right_indices) > segment_length:
+                filtered_myo_right_indices.pop()
+            filtered_myo_right_indices = np.array(filtered_myo_right_indices)
+            
+            
+            filtered_myo_right_indices = np.array(filtered_myo_right_indices)
+            #take data
+            filtered_myo_right_ts = np.array([action['myo_right_timestamps'][i] for i in filtered_myo_right_indices])
+            filtered_myo_right_readings = np.array([action['myo_right_readings'][i] for i in filtered_myo_right_indices])
+            
+            if skip_interval:
+                continue
+            
+            #! Create new action
             new_action = {'index': action['index'],
                           'file': action['file'],
                           'description': action['description'],
@@ -160,83 +235,7 @@ def Augmenting(data):
             
             augmented_data.append(new_action)
             
-    #!REBALANCE HERE
-    
     return augmented_data
-
-def Preprocessing(data, flag = ''):
-    global min_left_train, max_left_train, min_right_train, max_right_train
-    # data schema: ['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
-    #Define filtering parameter.
-    filter_cutoff_Hz = 5
-    #absolute + filter + normalize SEPARATELY the myo-right and myo-left readings SEPARATELY for each subject
-    for subjectid in subjects: #SEPARATELY FOR EACH SUBJECT
-        subject_data = [action for action in data if action.get('file') == subjectid]
-        
-        if len(subject_data)  == 0: #in the test split there are no samples for every subject
-            continue
-        
-        #internally sort actions of this subject because of timestamps when computing Fs
-        subject_data = sorted(subject_data, key= lambda action: action['start'])
-        
-        #extract data
-        myo_left_timestamps =  np.array([action['myo_left_timestamps'] for action in subject_data]) #(349,750,8)
-        myo_left_readings = np.array([action['myo_left_readings'] for action in subject_data]) 
-        myo_right_timestamps = np.array([action['myo_right_timestamps'] for action in subject_data]) 
-        myo_right_readings = np.array([action['myo_right_readings'] for action in subject_data]) 
-
-        #last action, last timestamp - first action, first timestamp
-        Fs_left = ((myo_left_timestamps.shape[1]*myo_left_timestamps.shape[0]) - 1) / (myo_left_timestamps[-1][-1] - myo_left_timestamps[0][0])
-        Fs_right = ((myo_right_timestamps.shape[1]*myo_right_timestamps.shape[0]) - 1) / (myo_right_timestamps[-1][-1] - myo_right_timestamps[0][0])
-
-        #absolute value
-        myo_left_readings = np.abs(myo_left_readings)
-        myo_right_readings = np.abs(myo_right_readings)
-
-        #filter each of 8 channels separately
-        myo_left_readings = lowpass_filter(myo_left_readings, filter_cutoff_Hz, Fs_left)
-        myo_right_readings= lowpass_filter(myo_right_readings, filter_cutoff_Hz, Fs_right)
-        
-        #NORMALIZE GLOBAL
-        # if flag == 'train':
-        #     min_left_train = np.min(myo_left_readings)
-        #     max_left_train = np.max(myo_left_readings)
-        #     min_right_train = np.min(myo_right_readings)
-        #     max_right_train = np.max(myo_right_readings)
-
-        # #normalize with global max and min
-        # myo_left_readings= (myo_left_readings) / (max_left_train - min_left_train)/2)
-        # myo_right_readings = (myo_right_readings) / (max_right_train - min_right_train)/2)
-        # #shift to [-1,1] with global min
-        # myo_left_readings = myo_left_readings - min_left_train -1
-        # myo_right_readings = myo_right_readings - min_right_train -1
-        
-        #NORMALIZE GLOBAL other version
-        # if flag == 'train':
-        #     min_left_train = np.min(myo_left_readings)
-        #     max_left_train = np.max(myo_left_readings)
-        #     min_right_train = np.min(myo_right_readings)
-        #     max_right_train = np.max(myo_right_readings)
-            
-        # myo_left_readings= 2*(myo_left_readings - min_left_train) / (max_left_train - min_left_train) -1
-        # myo_right_readings = 2*(myo_right_readings - min_right_train) / (max_right_train - min_right_train) -1
-        
-        # #NORMALIZE GLOBAL, CHANNEL BY CHANNEL
-        if flag == 'train':
-            min_left_train = myo_left_readings.min(axis=(0, 1), keepdims=True)
-            max_left_train = myo_left_readings.max(axis=(0, 1), keepdims=True)
-            min_right_train = myo_right_readings.min(axis=(0, 1), keepdims=True)
-            max_right_train = myo_right_readings.max(axis=(0, 1), keepdims=True)
-
-        myo_left_readings= 2*(myo_left_readings - min_left_train) / (max_left_train - min_left_train) -1
-        myo_right_readings = 2*(myo_right_readings - min_right_train) / (max_right_train - min_right_train) -1
-
-        #*update original actions with preprocessed data
-        for i, action in enumerate(subject_data):
-            action['myo_left_readings'] = myo_left_readings[i]
-            action['myo_right_readings'] = myo_right_readings[i]
-
-    return data
 
 
 def Stacking(data):
@@ -298,13 +297,13 @@ if __name__ == '__main__':
     AN_train = AN_train_df.to_dict('records') 
     AN_test = AN_test_df.copy().to_dict('records')
     
+    #Filter, Normalize and Augment 
+    AN_train = pre_Preprocessing(AN_train, flag='train')
+    AN_test = pre_Preprocessing(AN_test, flag='test')
+    
     #Augment actions into smaller actions of 5seconds each
     AN_train = Augmenting(AN_train) #3821 elements
     AN_test = Augmenting(AN_test) #419
-    
-    #Filter, Normalize and Augment 
-    AN_train = Preprocessing(AN_train, flag='train')
-    AN_test = Preprocessing(AN_test, flag='test')
     
     #Stack the myo_left_readings and myo_right_readings into a new key "features_EMG" 
     AN_train = Stacking(AN_train) #AN_train_base #AN_train_aug
