@@ -279,11 +279,11 @@ def handler_S04(AN_train_final_df, AN_test_final_df):
     S04_test = S04_test.sample(frac=1).reset_index(drop=True)
 
     # Save preprocessed dataset for SO4 formatted as uid, subjectid, features_EMG, features_RGB , label
-    filepath = 'Action-Net/data/S04_train.pkl'
+    filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/S04_train.pkl'
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(S04_train, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    filepath = 'Action-Net/data/S04_test.pkl'
+    filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/S04_test.pkl'
     with open(filepath, 'wb') as pickle_file:
         pickle.dump(S04_test, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
