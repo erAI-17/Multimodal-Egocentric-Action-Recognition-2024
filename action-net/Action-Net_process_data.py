@@ -4,7 +4,7 @@ import pandas as pd
 import os
 from scipy.signal import butter, lfilter # for filtering
 
-
+#!!
 EMG_data_path = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/Action-Net-EMG/'
 annotations_path = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/annotations/'
 
@@ -15,6 +15,11 @@ min_left_train = 0
 max_left_train = 0
 min_right_train = 0 
 max_right_train = 0
+
+# Define segmentation parameters.
+resampled_Fs = 10 # define a resampling rate for all sensors to interpolate
+num_segments_per_action = 20  # 20
+segment_duration_s = 5
 
 def lowpass_filter(data, cutoff, Fs, order=5):
     '''
@@ -70,7 +75,6 @@ def lowpass_filter(data, cutoff, Fs, order=5):
     return y
 
 
-
 def split_train_test():
     #combine all pkl files from different subjects
     combined_df = pd.DataFrame()  # Initialize an empty DataFrame to store the merged data
@@ -103,7 +107,7 @@ def split_train_test():
     return AN_train, AN_test
 
 
-def pre_Preprocessing(data, flag = ''):
+def Preprocessing(data, flag = ''):
     global min_left_train, max_left_train, min_right_train, max_right_train
     # data schema: ['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
     #Define filtering parameter.
@@ -143,109 +147,103 @@ def pre_Preprocessing(data, flag = ''):
                 # y = y / ((max_train - min_train)/2)
                 # y = y - min_train - 1    
                 
-                #*update original actions with preprocessed data
-                action[key + '_readings'] = y.tolist()
+                #!Resample the action at resampling rate=10Hz
+                target_time_s = np.linspace(ts[0], ts[-1],
+                                                num=int(round(1+resampled_Fs*(ts[-1] - ts[0]))),
+                                                endpoint=True)
+                fn_interpolate = interpolate.interp1d(
+                        ts, # x values
+                        y,   # y values
+                        axis=0,              # axis of the data along which to interpolate
+                        kind='linear',       # interpolation method, such as 'linear', 'zero', 'nearest', 'quadratic', 'cubic', etc.
+                        fill_value='extrapolate' # how to handle x values outside the original range
+                    )
 
+                action_data_resampled = fn_interpolate(target_time_s)
+                if np.any(np.isnan(action_data_resampled)):
+                        print('\n'*5)
+                        print('='*50)
+                        print('='*50)
+                        print('FOUND NAN')
+                        timesteps_have_nan = np.any(np.isnan(action_data_resampled), axis=tuple(np.arange(1,np.ndim(action_data_resampled))))
+                        print('Timestep indexes with NaN:', np.where(timesteps_have_nan)[0])
+                        print('\n'*5)
+                        action_data_resampled[np.isnan(action_data_resampled)] = 0
+                     
+                #*update original actions with preprocessed data
+                action[key + '_readings'] = action_data_resampled 
+                action[key + '_timestamps'] = target_time_s
     return data
 
 
 def Augmenting(data):
     #schema: ['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings']
     augmented_data = []
-    class_count = {}
     for action in data:
         
-        num_intervals = np.ceil((action['stop'] - action['start']) / 5).astype(int)
-        
         # Compute the start and stop timesteps for each interval of this action
-        start_ts = action['start'] + np.arange(num_intervals) * 5
+        start_ts = action['start'] 
         stop_ts = start_ts + 5
+        duration_s = stop_ts - start_ts
+        if duration_s < 5.0:
+            continue
 
-        segment_length = 800
-        for j in range(num_intervals):
-            skip_interval = False
-            #!myo left augment
-            filtered_myo_left_indices = np.where((start_ts[j] <= action['myo_left_timestamps']) & (action['myo_left_timestamps'] < stop_ts[j]))[0]
+        segment_start_times_s = np.linspace(start_ts, stop_ts - segment_duration_s,
+                                            num = num_segments_per_action,
+                                            endpoint=True)
+        
+        for j, segment_start_time_s in enumerate(segment_start_times_s):
             
-            filtered_myo_left_indices = list(filtered_myo_left_indices)
-            #PAD
-            while len(filtered_myo_left_indices) < segment_length:
-                if filtered_myo_left_indices[0] > 0: # != 0
-                    filtered_myo_left_indices = [filtered_myo_left_indices[0]-1] + filtered_myo_left_indices
-                elif filtered_myo_left_indices[-1] < len(action['myo_left_timestamps'])-1:
-                    filtered_myo_left_indices.append(filtered_myo_left_indices[-1]+1)
-                else: #if cannot be extended from beginning nor from end, drop action
-                    skip_interval = True
-                    break
-                
-            #CUT    
-            while len(filtered_myo_left_indices) > segment_length:
-                filtered_myo_left_indices.pop()
-            filtered_myo_left_indices = np.array(filtered_myo_left_indices)
+            segment_end_time_s = segment_start_time_s + segment_duration_s
             
-            if skip_interval:
-                continue
+            combined_readings = np.empty(shape=(10 * segment_duration_s, 0))
             
-            filtered_myo_left_indices = np.array(filtered_myo_left_indices)
-            #take data
-            filtered_myo_left_ts = np.array([action['myo_left_timestamps'][i] for i in filtered_myo_left_indices])
-            filtered_myo_left_readings = np.array([action['myo_left_readings'][i] for i in filtered_myo_left_indices]) 
-            
+            for key in ['myo_right', 'myo_left']:
+                skip_interval = False
 
-            #!myo right augment
-            filtered_myo_right_indices = np.where((start_ts[j] <= action['myo_right_timestamps']) & (action['myo_right_timestamps'] < stop_ts[j]))[0] 
-            
-            filtered_myo_right_indices = list(filtered_myo_right_indices)
-            #PAD
-            while len(filtered_myo_right_indices) < segment_length:
-                if filtered_myo_right_indices[0] > 0:
-                    filtered_myo_right_indices = [filtered_myo_right_indices[0]-1] + filtered_myo_right_indices
-                elif filtered_myo_right_indices[-1] < len(action['myo_right_timestamps'])-1:
-                    filtered_myo_right_indices.append(filtered_myo_right_indices[-1]+1)
-                else: #if cannot be extended from beginning nor from end, drop action
-                    skip_interval = True
-                    break
+                filtered_myo_indices = np.where((segment_start_time_s <= action[key + '_timestamps']) & (action[key + '_timestamps'] < segment_end_time_s))[0]
                 
-            #CUT    
-            while len(filtered_myo_right_indices) > segment_length:
-                filtered_myo_right_indices.pop()
-            filtered_myo_right_indices = np.array(filtered_myo_right_indices)
-            
-            
-            filtered_myo_right_indices = np.array(filtered_myo_right_indices)
-            #take data
-            filtered_myo_right_ts = np.array([action['myo_right_timestamps'][i] for i in filtered_myo_right_indices])
-            filtered_myo_right_readings = np.array([action['myo_right_readings'][i] for i in filtered_myo_right_indices])
-            
-            if skip_interval:
-                continue
-            
+                filtered_myo_indices = list(filtered_myo_indices)
+                #PAD
+                while len(filtered_myo_indices) < segment_duration_s*resampled_Fs:
+                    if filtered_myo_indices[0] > 0: # != 0
+                        filtered_myo_indices = [filtered_myo_indices[0]-1] + filtered_myo_indices
+                    elif filtered_myo_indices[-1] < len(action[key + '_timestamps'])-1:
+                        filtered_myo_indices.append(filtered_myo_indices[-1]+1)
+                    else: #if cannot be extended from beginning nor from end, drop action
+                        skip_interval = True
+                        break
+                    
+                #CUT    
+                while len(filtered_myo_indices) > segment_duration_s*resampled_Fs:
+                    filtered_myo_indices.pop()
+                filtered_myo_indices = np.array(filtered_myo_indices)
+                
+                if skip_interval:
+                    continue
+                
+                filtered_myo_indices = np.array(filtered_myo_indices)
+                #take data
+                filtered_myo_left_ts = np.array([action[key + '_timestamps'][i] for i in filtered_myo_indices])
+                filtered_myo_left_readings = np.array([action[key + '_readings'][i] for i in filtered_myo_indices]) 
+
+                combined_readings = np.concatenate((combined_readings, filtered_myo_left_readings), axis=1)
+                
             #! Create new action
             new_action = {'index': action['index'],
-                          'file': action['file'],
-                          'description': action['description'],
-                          'labels': action['labels'],
-                          'start': start_ts[j],
-                          'stop': stop_ts[j],
-                          'myo_left_timestamps': filtered_myo_left_ts,
-                          'myo_left_readings': filtered_myo_left_readings,
-                          'myo_right_timestamps': filtered_myo_right_ts, 
-                          'myo_right_readings': filtered_myo_right_readings
-                          }
+                            'file': action['file'],
+                            'description': action['description'],
+                            'labels': action['labels'],
+                            'start': segment_start_time_s,
+                            'stop': segment_end_time_s,
+                            'features_EMG': combined_readings,
+                            }
             
             augmented_data.append(new_action)
             
     return augmented_data
 
 
-def Stacking(data):
-    for action in data:
-        myo_left_readings = action['myo_left_readings']
-        myo_right_readings = action['myo_right_readings']
-        combined_readings = np.hstack((myo_left_readings, myo_right_readings))
-        action['features_EMG'] = combined_readings
-
-    return data
 
 def handler_S04(AN_train_final_df, AN_test_final_df):
     #video_length: 1.01.06 
@@ -280,13 +278,14 @@ def handler_S04(AN_train_final_df, AN_test_final_df):
     S04_test = S04_test.sample(frac=1).reset_index(drop=True)
 
     # Save preprocessed dataset for SO4 formatted as uid, subjectid, features_EMG, features_RGB , label
-    output_filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/S04_train.pkl'
-    with open(output_filepath, 'wb') as pickle_file:
+    filepath = 'Action-Net/data/S04_train.pkl'
+    with open(filepath, 'wb') as pickle_file:
         pickle.dump(S04_train, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    output_filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/S04_test.pkl'
-    with open(output_filepath, 'wb') as pickle_file:
+    filepath = 'Action-Net/data/S04_test.pkl'
+    with open(filepath, 'wb') as pickle_file:
         pickle.dump(S04_test, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 if __name__ == '__main__':
 
@@ -298,21 +297,17 @@ if __name__ == '__main__':
     AN_test = AN_test_df.copy().to_dict('records')
     
     #Filter, Normalize and Augment 
-    AN_train = pre_Preprocessing(AN_train, flag='train')
-    AN_test = pre_Preprocessing(AN_test, flag='test')
+    AN_train = Preprocessing(AN_train, flag='train')
+    AN_test = Preprocessing(AN_test, flag='test')
     
     #Augment actions into smaller actions of 5seconds each
     AN_train = Augmenting(AN_train) #3821 elements
     AN_test = Augmenting(AN_test) #419
     
-    #Stack the myo_left_readings and myo_right_readings into a new key "features_EMG" 
-    AN_train = Stacking(AN_train) #AN_train_base #AN_train_aug
-    AN_test = Stacking(AN_test) #AN_test_base #AN_test_aug
-    
     #Convert back to pd dataframes
-    AN_train_final_df = pd.DataFrame(AN_train, columns=['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings', 'features_EMG'])
-    AN_test_final_df = pd.DataFrame(AN_test, columns=['index', 'file', 'description', 'labels', 'start','stop', 'myo_left_timestamps', 'myo_left_readings','myo_right_timestamps', 'myo_right_readings', 'features_EMG'])
-    
+    AN_train_final_df = pd.DataFrame(AN_train, columns=['index', 'file', 'description', 'labels', 'start','stop','features_EMG'])
+    AN_test_final_df = pd.DataFrame(AN_test, columns=['index', 'file', 'description', 'labels', 'start','stop', 'features_EMG'])
+
     #There are some activities with slightly different names that I want to merge 
     activities_renamed = {
         'Open/close a jar of almond butter': ['Open a jar of almond butter'],
@@ -338,6 +333,7 @@ if __name__ == '__main__':
     AN_train_final_df = AN_train_final_df.sample(frac=1).reset_index(drop=True)
     AN_test_final_df = AN_test_final_df.sample(frac=1).reset_index(drop=True)
     
+    #!!!!
     #Save preprocessed dataset into pkl file FOR EVERY SUBJECT formatted as {features: [{uid: 1 , subjectid: S00_2, features_EMG: [] , labels: }]}
     output_filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/SXY_train.pkl'
     with open(output_filepath, 'wb') as pickle_file:
