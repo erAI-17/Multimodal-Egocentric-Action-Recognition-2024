@@ -84,7 +84,7 @@ def split_train_test():
         if file_name.endswith('.pkl'):
             file_path = os.path.join(EMG_data_path, file_name)
             with open(file_path, 'rb') as f:
-                content = pickle.load(f)
+                content = pd.read_pickle(f)
                 content['file'] = file_name
                 content['index']  = np.arange(content.shape[0])
                 if isinstance(content, pd.DataFrame):
@@ -172,7 +172,7 @@ def Preprocessing(data, flag = ''):
                         action_data_resampled[np.isnan(action_data_resampled)] = 0
                      
                 #*update original actions with preprocessed data
-                action[key + '_readings'] = action_data_resampled 
+                action[key + '_readings'] = action_data_resampled
                 action[key + '_timestamps'] = target_time_s
     return data
 
@@ -184,7 +184,7 @@ def Augmenting(data):
         
         # Compute the start and stop timesteps for each interval of this action
         start_ts = action['start'] 
-        stop_ts = start_ts + 5
+        stop_ts = action['stop'] 
         duration_s = stop_ts - start_ts
         if duration_s < 5.0:
             continue
@@ -193,15 +193,15 @@ def Augmenting(data):
                                             num = num_segments_per_action,
                                             endpoint=True)
         
+        keep_action = True
         for j, segment_start_time_s in enumerate(segment_start_times_s):
             
             segment_end_time_s = segment_start_time_s + segment_duration_s
             
-            combined_readings = np.empty(shape=(10 * segment_duration_s, 0))
+            combined_readings = np.empty(shape=(resampled_Fs * segment_duration_s, 0))
             
             for key in ['myo_right', 'myo_left']:
-                skip_interval = False
-
+                
                 filtered_myo_indices = np.where((segment_start_time_s <= action[key + '_timestamps']) & (action[key + '_timestamps'] < segment_end_time_s))[0]
                 
                 filtered_myo_indices = list(filtered_myo_indices)
@@ -212,35 +212,34 @@ def Augmenting(data):
                     elif filtered_myo_indices[-1] < len(action[key + '_timestamps'])-1:
                         filtered_myo_indices.append(filtered_myo_indices[-1]+1)
                     else: #if cannot be extended from beginning nor from end, drop action
-                        skip_interval = True
+                        keep_action = False
                         break
                     
                 #CUT    
                 while len(filtered_myo_indices) > segment_duration_s*resampled_Fs:
                     filtered_myo_indices.pop()
+                    
                 filtered_myo_indices = np.array(filtered_myo_indices)
-                
-                if skip_interval:
-                    continue
-                
-                filtered_myo_indices = np.array(filtered_myo_indices)
-                #take data
-                filtered_myo_left_ts = np.array([action[key + '_timestamps'][i] for i in filtered_myo_indices])
-                filtered_myo_left_readings = np.array([action[key + '_readings'][i] for i in filtered_myo_indices]) 
+    
+                if keep_action:            
+                    #take data
+                    filtered_myo_key_readings = np.array([action[key + '_readings'][i] for i in filtered_myo_indices]) 
 
-                combined_readings = np.concatenate((combined_readings, filtered_myo_left_readings), axis=1)
-                
-            #! Create new action
-            new_action = {'index': action['index'],
-                            'file': action['file'],
-                            'description': action['description'],
-                            'labels': action['labels'],
-                            'start': segment_start_time_s,
-                            'stop': segment_end_time_s,
-                            'features_EMG': combined_readings,
-                            }
+                    combined_readings = np.concatenate((combined_readings, filtered_myo_key_readings), axis=1)
             
-            augmented_data.append(new_action)
+            if keep_action:          
+                #! Create new action
+                new_action = {'index': action['index'],
+                                'file': action['file'],
+                                'description': action['description'],
+                                'labels': action['labels'],
+                                'start': segment_start_time_s,
+                                'stop': segment_end_time_s,
+                                'features_EMG': combined_readings,
+                                }
+
+                keep_action = True
+                augmented_data.append(new_action)
             
     return augmented_data
 
@@ -301,9 +300,9 @@ if __name__ == '__main__':
     AN_train = Preprocessing(AN_train, flag='train')
     AN_test = Preprocessing(AN_test, flag='test')
     
-    #Augment actions into smaller actions of 5seconds each
-    AN_train = Augmenting(AN_train) #3821 elements
-    AN_test = Augmenting(AN_test) #419
+    #Augment actions into smaller actions 
+    AN_train = Augmenting(AN_train) 
+    AN_test = Augmenting(AN_test)
     
     #Convert back to pd dataframes
     AN_train_final_df = pd.DataFrame(AN_train, columns=['index', 'file', 'description', 'labels', 'start','stop','features_EMG'])
