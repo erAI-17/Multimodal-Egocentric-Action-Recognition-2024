@@ -247,7 +247,7 @@ def Augmenting(data):
 
 def handler_S04(AN_train_final_df, AN_test_final_df):
     #video_length: 1.01.06 
-    fps= 29.67
+    fps= 30
     
     #Filter lines only for subject S04
     AN_train_final_S04 = AN_train_final_df[AN_train_final_df['file'] == 'S04_1.pkl']
