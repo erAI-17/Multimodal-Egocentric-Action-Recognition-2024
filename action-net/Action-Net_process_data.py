@@ -258,11 +258,11 @@ def handler_S04(AN_train_final_df, AN_test_final_df):
     sorted_merged_df = merged_df.sort_values(by='start', ascending=True)
     
     # Assuming the first timestamp corresponds to the start of the video
-    video_start_timestamp = sorted_merged_df['start'].min()
+    video_start_timestamp = 1655239022.925989936 #sorted_merged_df['start'].min()
 
     # Calculate START_INDEX and STOP_INDEX
-    sorted_merged_df['start_frame'] = ((sorted_merged_df['start'].astype(float) - float(video_start_timestamp)) * fps).round().astype(int)
-    sorted_merged_df['stop_frame'] = ((sorted_merged_df['stop'].astype(float) - float(video_start_timestamp)) * fps).round().astype(int)
+    sorted_merged_df['start_frame'] = ((sorted_merged_df['start'] - video_start_timestamp) * fps).astype(int)
+    sorted_merged_df['stop_frame'] = ((sorted_merged_df['stop']- video_start_timestamp) * fps).astype(int)
     
     #AGAIN split into S04_test and S04_train
     #read annotation files
@@ -296,7 +296,7 @@ if __name__ == '__main__':
     AN_train = AN_train_df.to_dict('records') 
     AN_test = AN_test_df.copy().to_dict('records')
     
-    #Filter, Normalize and Augment 
+    #Filter, Normalize
     AN_train = Preprocessing(AN_train, flag='train')
     AN_test = Preprocessing(AN_test, flag='test')
     
