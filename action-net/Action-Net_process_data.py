@@ -228,13 +228,13 @@ def Augmenting(data):
                     combined_readings = np.concatenate((combined_readings, filtered_myo_key_readings), axis=1)
             
             if keep_action:          
-                #! Create new action
+                 #! Create new action. For start and stop I use the myo_left timestamps
                 new_action = {'index': action['index'],
                                 'file': action['file'],
                                 'description': action['description'],
                                 'labels': action['labels'],
-                                'start': segment_start_time_s,
-                                'stop': segment_end_time_s,
+                                'start': action[key + '_timestamps'][filtered_myo_indices[0]],  #action[key + '_timestamps'][filtered_myo_indices[0]], # segment_start_time_s
+                                'stop': action[key + '_timestamps'][filtered_myo_indices[-1]] , #action[key + '_timestamps'][filtered_myo_indices[-1]], #segment_end_time_s
                                 'features_EMG': combined_readings,
                                 }
 
@@ -256,6 +256,10 @@ def handler_S04(AN_train_final_df, AN_test_final_df):
     #Merge back and order by start timestamp
     merged_df = pd.concat([AN_train_final_S04, AN_test_final_S04])
     sorted_merged_df = merged_df.sort_values(by='start', ascending=True)
+    
+    # Assuming the first timestamp corresponds to the start of the video
+    # 1655239123.1450782
+    # 1655239123.020082 from myo-left
     
     # Assuming the first timestamp corresponds to the start of the video
     video_start_timestamp = 1655239022.925989936 #sorted_merged_df['start'].min()
