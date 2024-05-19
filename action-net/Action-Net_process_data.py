@@ -13,7 +13,7 @@ subjects = ('S00_2.pkl', 'S01_1.pkl', 'S02_2.pkl' , 'S02_3.pkl','S02_4.pkl', 'S0
 # Define segmentation parameters.
 resampled_Fs = 10 # define a resampling rate
 num_segments_per_action = 20  # 20
-segment_duration_s = 5
+segment_duration_s = 5 #10 #5
 buffer_startActivity_s = 2
 buffer_endActivity_s = 2
 
@@ -58,7 +58,7 @@ def split_train_test():
     return AN_train, AN_test
 
 
-def Preprocessing(data, flag = ''):
+def Preprocessing(data):
     #Define filtering parameter.
     filter_cutoff_Hz = 5
       
@@ -118,8 +118,8 @@ def Augmenting(data):
     for action in data:
         
         # Compute the start and stop timesteps for each interval of this action
-        start_ts = action['start'] 
-        stop_ts = action['stop'] 
+        start_ts = action['myo_right_timestamps'][0] #action['start'] #action['myo_right_timestamps'][0]
+        stop_ts = action['myo_right_timestamps'][-1] #action['stop'] #action['myo_right_timestamps'][-1]
         duration_s = stop_ts - start_ts
         if duration_s < segment_duration_s:
             continue
