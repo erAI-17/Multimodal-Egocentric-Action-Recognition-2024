@@ -116,8 +116,6 @@ def Preprocessing(data):
 def Augmenting(data):
     augmented_data = []
     for action in data:
-        
-        # Compute the start and stop timesteps for each interval of this action
         start_ts = action['myo_right_timestamps'][0] #action['start'] #action['myo_right_timestamps'][0]
         stop_ts = action['myo_right_timestamps'][-1] #action['stop'] #action['myo_right_timestamps'][-1]
         duration_s = stop_ts - start_ts
@@ -160,7 +158,6 @@ def Augmenting(data):
                     combined_readings = np.concatenate((combined_readings, filtered_myo_key_readings), axis=1)
             
             if keep_action:          
-                 #! Create new action. For start and stop I use the myo_left timestamps
                 new_action = {  'index': action['index'],
                                 'file': action['file'],
                                 'description': action['description'],
@@ -174,8 +171,6 @@ def Augmenting(data):
                 augmented_data.append(new_action)
             
     return augmented_data
-
-
 
 def handler_S04(df, flag):
     fps= 30
