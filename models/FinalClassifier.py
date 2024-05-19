@@ -3,6 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from utils.args import args
 import utils
+import torchaudio.transforms as T
 
 input_size = 1024
 hidden_size = 512
@@ -206,22 +207,25 @@ class MLP_EMG(nn.Module):
         return logits, {}
 
 
+
 class CNN_EMG(nn.Module):
     # Sampling frequency is 160 Hz
     # With 32 samples the frequency resolution after FFT is 160 / 32
-    def __init__(self, num_classes):
+    def __init__(self):
+        num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
         super(CNN_EMG, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=16, out_channels=128, kernel_size=3)
-        self.conv2 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3)
+        self.conv1 = nn.Conv2d(in_channels=16, out_channels=128, kernel_size=2)
+        self.conv2 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=2)
         self.pool = nn.MaxPool2d(kernel_size=2)
-        self.fc1 = nn.Linear(256*1*73, 128)
+        self.fc1 = nn.Linear(256*1*3, 128)
         self.fc2 = nn.Linear(128, num_classes)
         self.dropout = nn.Dropout(p=0.5)
         
     def forward(self, x):
         n_fft = 32
         win_length = None
-        hop_length = 4
+        hop_length = 16
+        
         spectrogram = T.Spectrogram(
             n_fft=n_fft,
             win_length=win_length,
@@ -232,12 +236,11 @@ class CNN_EMG(nn.Module):
             normalized=True
         )
         
-        x = torch.from_numpy(x).float()
-        x =[spectrogram(x[:, i]) for i in range(16)]
-        
+        x = torch.stack([spectrogram(x[:,:, i]) for i in range(16)], dim=1).float()
+       
         x = self.pool(torch.relu(self.conv1(x)))
         x = self.pool(torch.relu(self.conv2(x)))
-        x = x.view(-1, 256*1*73 )
+        x = x.view(-1, 256*1*3 )
         x = self.dropout(torch.relu(self.fc1(x)))
         x = self.fc2(x)
         return x, {}
