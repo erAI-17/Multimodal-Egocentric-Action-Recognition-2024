@@ -13,7 +13,7 @@ subjects = ('S00_2.pkl', 'S01_1.pkl', 'S02_2.pkl' , 'S02_3.pkl','S02_4.pkl', 'S0
 # Define segmentation parameters.
 resampled_Fs = 10 # define a resampling rate
 num_segments_per_action = 20  # 20
-segment_duration_s = 5 #10 #5
+segment_duration_s = 10 #10 #5
 buffer_startActivity_s = 2
 buffer_endActivity_s = 2
 
@@ -185,8 +185,8 @@ def handler_S04(df, flag):
     video_start_timestamp =  1655239114.183343
 
     S04_df = S04_df.copy()
-    S04_df['start_frame'] = ((S04_df['start'] - video_start_timestamp) * fps).astype(int).copy()
-    S04_df['stop_frame'] = ((S04_df['stop'] - video_start_timestamp) * fps).astype(int).copy()
+    S04_df['start_frame'] = ((S04_df['start'] - video_start_timestamp) * fps).astype(int)
+    S04_df['stop_frame'] = ((S04_df['stop'] - video_start_timestamp) * fps).astype(int)
 
     # Save preprocessed dataset for SO4 formatted as uid, subjectid, features_EMG, features_RGB , label
     filepath = '/content/drive/MyDrive/AML/AML_Project_2024/data/Action-Net/S04_'+flag+'.pkl'
