@@ -182,7 +182,7 @@ def handler_S04(df, flag):
     # 1655217500.0 at 16:38:20
     # 1655219928.0 at 17:18:48
     
-    video_start_timestamp =  1655239123.020082 #sorted_merged_df['start'].min() #16552-39974.420555
+    video_start_timestamp =  1655239114.183343
 
     S04_df = S04_df.copy()
     S04_df['start_frame'] = ((S04_df['start'] - video_start_timestamp) * fps).astype(int).copy()
@@ -204,8 +204,8 @@ if __name__ == '__main__':
     AN_test = AN_test_df.copy().to_dict('records')
     
     #Filter, Normalize
-    AN_train = Preprocessing(AN_train, flag='train')
-    AN_test = Preprocessing(AN_test, flag='test')
+    AN_train = Preprocessing(AN_train)
+    AN_test = Preprocessing(AN_test)
     
     #Augment actions into smaller actions 
     AN_train = Augmenting(AN_train) 
