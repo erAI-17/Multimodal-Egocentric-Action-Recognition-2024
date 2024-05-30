@@ -40,12 +40,13 @@ class MLP(nn.Module):
             x = self.fc2(x)
             x = self.dropout(x)
             x = self.relu(x)
+            feat = x
             logits = self.fc3(x)
             logits = self.avg_pool(logits.permute(0, 2, 1)) 
             logits = logits.permute(0, 2, 1)
             logits = logits.squeeze(dim=1)
        
-        return logits, {}
+        return logits, {'feat':feat}
 
 
 class LSTM(nn.Module):
@@ -161,8 +162,9 @@ class LSTM_EMG(nn.Module):
         x = x.float() #It receives float64 but can work only on float32
         out, _ = self.lstm(x)
         out = self.dropout(out)
+        feat = out[:, -1, :]
         out = self.fc(out[:, -1, :]) # extract last output of the sequence (the one obtained after all the timesteps)
-        return out, {}
+        return out, {'feat':feat}
     
     
 class MLP_EMG(nn.Module):
@@ -209,8 +211,6 @@ class MLP_EMG(nn.Module):
 
 
 class CNN_EMG(nn.Module):
-    # Sampling frequency is 160 Hz
-    # With 32 samples the frequency resolution after FFT is 160 / 32
     def __init__(self):
         num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
         super(CNN_EMG, self).__init__()
@@ -244,3 +244,29 @@ class CNN_EMG(nn.Module):
         x = self.dropout(torch.relu(self.fc1(x)))
         x = self.fc2(x)
         return x, {}
+    
+
+class FUSION_net(nn.Module):
+    def __init__(self):
+        num_classes, valid_labels = utils.utils.get_domains_and_labels(args)
+        super(FUSION_net, self).__init__()
+        self.rgb_model = MLP() 
+        self.emg_model = LSTM_EMG() 
+        self.fc1 = nn.Linear(512 * 2, 128)  
+        self.fc2 = nn.Linear(128, num_classes)  
+
+    def forward(self, data):
+        rgb_output, rgb_feat  = self.rgb_model(data['RGB']) #?late feat [batch_size:32, 512]
+        depth_output, depth_feat = self.emg_model(data['EMG'])  #?late feat [batch_size:32, 512]
+        
+        combined_features = []
+        for level in rgb_feat.keys():
+            combined = torch.cat((rgb_feat[level], depth_feat[level]), dim=1)  # Concatenate features
+            combined_features.append(combined)
+
+        avg_combined = torch.mean(torch.stack(combined_features), dim=0)
+        
+        x = F.relu(self.fc1(avg_combined))
+        x = self.fc2(x)
+        return x, {}
+    

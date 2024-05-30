@@ -9,12 +9,13 @@ resume_from: null # checkpoint directory
 logname: null # name of the logs
 models_dir: null # directory containing all the models
 feat_avg: ??? #if true it computes the average of the features and feed to MLP. If False, 1 logit s compute for each clip for the same record, and logits are then averaged
+fusion_modalities: True
 
 # training parameters
 train:
-  num_iter: 5000 # number of training iterations with total_batch size
-  lr_steps: 5000 # steps before reducing learning rate
-  eval_freq: 1000 # evaluation frequency
+  num_iter: 500 # number of training iterations with total_batch size
+  lr_steps: 500 # steps before reducing learning rate
+  eval_freq: 2 # evaluation frequency
   num_clips: ??? #5 #10
   dense_sampling: # sampling version adopted in training for each modality
     RGB: ??? #True #False
@@ -56,6 +57,15 @@ models:
     weight_decay: 1e-7
   EMG:
     model: ??? #MLP_EMG #LSTM_EMG #TRANSFORMER
+    normalize: ???
+    dropout: ???
+    kwargs: {}
+    lr_steps: 3000
+    lr: 0.01
+    sgd_momentum: 0.9
+    weight_decay: 1e-7
+  FUSION:
+    model: ???
     normalize: ???
     dropout: ???
     kwargs: {}

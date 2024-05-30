@@ -174,8 +174,12 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         #* Action recognition
         source_label = source_label.to(device)
         data = {}
-        for m in modalities:
-            data[m] = source_data[m].to(device)
+        if args.fusion_modalities == True:
+            data['FUSION'] = {m: source_data[m].to(device) for m in modalities}
+        else: 
+            for m in modalities:
+                data[m] = source_data[m].to(device)
+        
         logits, _ = action_classifier.forward(data)
         action_classifier.compute_loss(logits, source_label, loss_weight=1)
         action_classifier.backward(retain_graph=False)
@@ -229,9 +233,12 @@ def validate(model, val_loader, device, it, num_classes):
         for i_val, (data, label) in enumerate(val_loader):
             label = label.to(device)
 
-            for m in modalities:
-                batch = data[m].shape[0]
-                logits[m] = torch.zeros((batch, num_classes)).to(device) #1 #args.test.num_clips
+            if args.fusion_modalities == True:
+                data['FUSION'] = {m: data[m].to(device) for m in modalities}
+            else:
+                for m in modalities:
+                    batch = data[m].shape[0]
+                    logits[m] = torch.zeros((args.test.num_clips, batch, num_classes)).to(device)
 
             clip = {}
             
