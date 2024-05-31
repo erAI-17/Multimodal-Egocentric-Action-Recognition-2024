@@ -44,20 +44,22 @@ def main():
     modalities = args.modality
 
     # recover valid paths, domains, classes
-    # this will output the domain conversion (D1 -> 8, et cetera) and the label list
     num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
     # device where everything is run
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # these dictionaries are for more multi-modal training/testing, each key is a modality used
-    models = {}
-    logger.info("Instantiating models per modality")
-    for m in modalities:
-        logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
-        # notice that here, the first parameter passed is the input dimension
-        # In our case it represents the feature dimensionality which is equivalent to 1024 for I3D
-        models[m] = getattr(model_list, args.models[m].model)()
-
+    if args.fusion_modalities == True:
+        logger.info("Instantiating FUSION model: %s", args.models['FUSION'].model)
+        
+        fusion_model = getattr(model_list, args.models['FUSION'].model)()
+        models = {'FUSION':fusion_model }
+    else:
+        models = {}
+        for m in args.modality:
+            logger.info("Instantiating models per modality")
+            logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
+            models[m] = getattr(model_list, args.models[m].model)()
+            
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.ActionRecognition("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
