@@ -248,20 +248,23 @@ class CNN_EMG(nn.Module):
 
 class FUSION_net(nn.Module):
     def __init__(self):
-        num_classes, valid_labels = utils.utils.get_domains_and_labels(args)
+        num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
         super(FUSION_net, self).__init__()
         self.rgb_model = MLP() 
         self.emg_model = LSTM_EMG() 
-        self.fc1 = nn.Linear(512 * 2, 128)  
+        self.fc1 = nn.Linear(5170, 128)   #10*512+50
         self.fc2 = nn.Linear(128, num_classes)  
 
     def forward(self, data):
-        rgb_output, rgb_feat  = self.rgb_model(data['RGB']) #?late feat [batch_size:32, 512]
-        depth_output, depth_feat = self.emg_model(data['EMG'])  #?late feat [batch_size:32, 512]
+        rgb_output, rgb_feat  = self.rgb_model(data['RGB']) #?late feat [batch_size:32, 10, 512]
+        emg_output, emg_feat = self.emg_model(data['EMG'])  #?late feat [batch_size:32, 1, 50]
+        
         
         combined_features = []
         for level in rgb_feat.keys():
-            combined = torch.cat((rgb_feat[level], depth_feat[level]), dim=1)  # Concatenate features
+            rgb_feat_reshaped = rgb_feat[level].reshape(-1, 10* 512)  # [batch_size, 5120]
+            emg_feat_reshaped = emg_feat[level].reshape(-1, 50)
+            combined = torch.cat((rgb_feat_reshaped, emg_feat_reshaped), dim=1)  # Concatenate features
             combined_features.append(combined)
 
         avg_combined = torch.mean(torch.stack(combined_features), dim=0)
@@ -269,4 +272,3 @@ class FUSION_net(nn.Module):
         x = F.relu(self.fc1(avg_combined))
         x = self.fc2(x)
         return x, {}
-    
