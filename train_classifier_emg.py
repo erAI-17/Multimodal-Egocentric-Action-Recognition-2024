@@ -239,22 +239,9 @@ def validate(model, val_loader, device, it, num_classes):
                 data['FUSION'] = {m: data[m].to(device) for m in modalities}
             else:
                 for m in modalities:
-                    batch = data[m].shape[0]
-                    logits[m] = torch.zeros((args.test.num_clips, batch, num_classes)).to(device)
-
-            clip = {}
-            
-            for m in modalities:
-                clip[m] = data[m].to(device)
-
-            output, _ = model(clip)
-            for m in modalities:
-                logits[m] = output[m]
-            
-            #!already performing mean inside mlp 
-            #for m in modalities:
-            #    logits[m] = torch.mean(logits[m], dim=0)
-
+                    data[m] = data[m].to(device)
+                        
+            logits, _ = model.forward(data)
             model.compute_accuracy(logits, label)
 
             if len(val_loader) >= 5:
