@@ -264,7 +264,7 @@ class FUSION_net(nn.Module):
         combined_features = []
         for level in rgb_feat.keys():
             rgb_feat_reshaped = rgb_feat[level].reshape(-1, 10* 512)  # [batch_size, 5120]
-            emg_feat_reshaped = emg_feat[level].reshape(-1, 50)
+            emg_feat_reshaped = emg_feat[level].reshape(-1, 10* 512)  #LSTM_EMG: emg_feat[level].reshape(-1, 50)
             combined = torch.cat((rgb_feat_reshaped, emg_feat_reshaped), dim=1)  # Concatenate features
             combined_features.append(combined)
 
