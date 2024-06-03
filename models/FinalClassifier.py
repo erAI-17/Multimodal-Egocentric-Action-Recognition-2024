@@ -255,9 +255,9 @@ class FUSION_net(nn.Module):
         self.fc1 = nn.Linear(5170, 128)   #10*512+50
         self.fc2 = nn.Linear(128, num_classes)  
 
-    def forward(self, data):
-        rgb_output, rgb_feat  = self.rgb_model(data['RGB']) #?late feat [batch_size:32, 10, 512]
-        emg_output, emg_feat = self.emg_model(data['EMG'])  #?late feat [batch_size:32, 1, 50]
+    def forward(self, x):
+        rgb_output, rgb_feat  = self.rgb_model(x['RGB']) #?late feat [batch_size:32, 10, 512]
+        emg_output, emg_feat = self.emg_model(x['EMG'])  #?late feat [batch_size:32, 1, 50]
         
         
         combined_features = []
