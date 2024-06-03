@@ -253,7 +253,7 @@ class FUSION_net(nn.Module):
         super(FUSION_net, self).__init__()
         self.rgb_model = MLP() 
         self.emg_model = MLP_EMG() 
-        self.fc1 = nn.Linear(5170, 128)   #10*512+50
+        self.fc1 = nn.Linear(10* 512 + 100* 512, 128)   #MLP_EMG= #LSTM_EMG: 5170= 10*512+50
         self.fc2 = nn.Linear(128, num_classes)  
 
     def forward(self, x):
