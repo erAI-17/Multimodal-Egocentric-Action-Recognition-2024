@@ -252,7 +252,7 @@ class FUSION_net(nn.Module):
         num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
         super(FUSION_net, self).__init__()
         self.rgb_model = MLP() 
-        self.emg_model = LSTM_EMG() 
+        self.emg_model = MLP_EMG() 
         self.fc1 = nn.Linear(5170, 128)   #10*512+50
         self.fc2 = nn.Linear(128, num_classes)  
 
