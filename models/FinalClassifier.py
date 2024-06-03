@@ -201,12 +201,13 @@ class MLP_EMG(nn.Module):
             x = self.fc2(x)
             x = self.dropout(x)
             x = self.relu(x)
+            feat = x
             logits = self.fc3(x)
             logits = self.avg_pool(logits.permute(0, 2, 1)) 
             logits = logits.permute(0, 2, 1)
             logits = logits.squeeze(dim=1)
        
-        return logits, {}
+        return logits, {'feat':feat}
 
 
 
