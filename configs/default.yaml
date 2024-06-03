@@ -13,9 +13,9 @@ fusion_modalities: True
 
 # training parameters
 train:
-  num_iter: 500 # number of training iterations with total_batch size
-  lr_steps: 500 # steps before reducing learning rate
-  eval_freq: 2 # evaluation frequency
+  num_iter: 5000 # number of training iterations with total_batch size
+  lr_steps: 3000 # steps before reducing learning rate
+  eval_freq: 500 # evaluation frequency
   num_clips: ??? #5 #10
   dense_sampling: # sampling version adopted in training for each modality
     RGB: ??? #True #False
