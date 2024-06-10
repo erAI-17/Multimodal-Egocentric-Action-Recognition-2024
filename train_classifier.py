@@ -43,13 +43,9 @@ def main():
     init_operations()
     modalities = args.modality
 
-    # recover valid paths, domains, classes
-    # this will output the domain conversion (D1 -> 8, et cetera) and the label list
     num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
-    # device where everything is run
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # these dictionaries are for more multi-modal training/testing, each key is a modality used
     models = {}
     logger.info("Instantiating models per modality")
     for m in modalities:
@@ -58,21 +54,16 @@ def main():
         # In our case it represents the feature dimensionality which is equivalent to 1024 for I3D
         models[m] = getattr(model_list, args.models[m].model)()
 
-    # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.ActionRecognition("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
                                                 args.train.num_clips, args.models, args=args)
     action_classifier.load_on_gpu(device)
 
     if args.action == "train":
-        # resume_from argument is adopted in case of restoring from a checkpoint
         if args.resume_from is not None:
             action_classifier.load_last_model(args.resume_from)
-        # define number of iterations I'll do with the actual batch: we do not reason with epochs but with iterations
-        # i.e. number of batches passed
-        # notice, here it is multiplied by tot_batch/batch_size since gradient accumulation technique is adopted
+
         training_iterations = args.train.num_iter * (args.total_batch // args.batch_size)
-        # all dataloaders are generated here
         train_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[0], 
                                                                        modalities,
                                                                        'train', 
@@ -129,24 +120,17 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
     action_classifier.zero_grad()
     iteration = action_classifier.current_iter * (args.total_batch // args.batch_size)
 
-    # the batch size should be total_batch but batch accumulation is done with batch size = batch_size.
-    # real_iter is the number of iterations if the batch size was really total_batch
     for i in range(iteration, training_iterations):
         # iteration w.r.t. the paper (w.r.t the bs to simulate).... i is the iteration with the actual bs( < tot_bs)
         real_iter = (i + 1) / (args.total_batch // args.batch_size)
         if real_iter == args.train.lr_steps:
-            # learning rate decay at iteration = lr_steps
             action_classifier.reduce_learning_rate()
-        # gradient_accumulation_step is a bool used to understand if we accumulated at least total_batch
-        # samples' gradient
         gradient_accumulation_step = real_iter.is_integer()
 
         """
         Retrieve the data from the loaders
         """
         start_t = datetime.now()
-        # the following code is necessary as we do not reason in epochs so as soon as the dataloader is finished we need
-        # to redefine the iterator
         try:
             source_data, source_label = next(data_loader_source)
         except StopIteration:
@@ -177,8 +161,6 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
             action_classifier.step()
             action_classifier.zero_grad()
 
-        # every eval_freq "real iteration" (iterations on total_batch) the validation is done, notice we validate and
-        # save the last 9 models
         if gradient_accumulation_step and real_iter % args.train.eval_freq == 0:
             val_metrics = validate(action_classifier, val_loader, device, int(real_iter), num_classes)
 
@@ -195,14 +177,6 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
 
 
 def validate(model, val_loader, device, it, num_classes):
-    """
-    function to validate the model on the test set
-    model: Task containing the model to be tested
-    val_loader: dataloader containing the validation data
-    device: device on which you want to test
-    it: int, iteration among the training num_iter at which the model is tested
-    num_classes: int, number of classes in the classification problem
-    """
     global modalities
 
     model.reset_acc()

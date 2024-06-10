@@ -60,7 +60,6 @@ def main():
             logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
             models[m] = getattr(model_list, args.models[m].model)()
             
-    # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.ActionRecognition("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
                                                 args.train.num_clips, args.models, args=args)
@@ -71,14 +70,8 @@ def main():
         if args.resume_from is not None:
             action_classifier.load_last_model(args.resume_from)
         
-        #*WE USE GRADIENT ACCUMULATION (the batches are devided into smaller batches with gradient accumulation)
-        #* TOTAL_BATCH (128) -> 4* BATCH_SIZE (32)
-        #* Every TOTAL_BATCH has to be iterated (forward pass + backward pass) "args.train.num_iter" times (5000)
-        #* So, each BATCH_SIZE (32) needs to be passed  train.num_iter 
         training_iterations = args.train.num_iter * (args.total_batch // args.batch_size)
         
-        #*All dataloaders are generated here
-        #!!SET LOAD FEATURES TO TRUE WHEN TRYING ALSO RGB MODALITY
         train_loader = torch.utils.data.DataLoader(ActionVisionDataset(args.dataset.shift.split("-")[0],
                                                                        modalities,
                                                                        'train', 
@@ -105,7 +98,6 @@ def main():
         
         train(action_classifier, train_loader, val_loader, device, num_classes)
 
-    #*test/validate
     elif args.action == "validate":
         if args.resume_from is not None:
             action_classifier.load_last_model(args.resume_from)
@@ -139,18 +131,13 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
     action_classifier.train(True)
     action_classifier.zero_grad()
     
-    #*current_iter is just for restoring from a saved run. Otherwise iteration is set to 0.
     iteration = action_classifier.current_iter * (args.total_batch // args.batch_size)
 
-    #* real_iter is the number of iterations on TOTAL_BATCH
-    #* this is needed because the lr schedule is defined on the real_iter not on
     for i in range(iteration, training_iterations):
-        #* iteration in BATCH_SIZE < TOTAL_BATCH
         real_iter = (i + 1) / (args.total_batch // args.batch_size)
         if real_iter == args.train.lr_steps:
             # learning rate decay at iteration = lr_steps
             action_classifier.reduce_learning_rate()
-        # gradient_accumulation_step is a bool used to understand if we accumulated at least total_batch samples' gradient
         gradient_accumulation_step = real_iter.is_integer()
 
         """
@@ -158,12 +145,10 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         """
         start_t = datetime.now()
         
-        #* the following code is necessary as we do not reason in terms of epochs so,
-        #* as soon as the dataloader is finished we need to redefine the iterator
         try:
             #source data is a dictionary: {"RGB": [[[batch_size (32)*num_clips (5)*1024]]], }
             #source_label is batchsize (32)
-            source_data, source_label = next(data_loader_source) #*get the next batch of data with next()!
+            source_data, source_label = next(data_loader_source)
         except StopIteration:
             data_loader_source = iter(train_loader)
             source_data, source_label = next(data_loader_source)
@@ -187,8 +172,6 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         action_classifier.backward(retain_graph=False)
         action_classifier.compute_accuracy(logits, source_label)
                 
-
-        # update weights and zero gradients if total_batch samples are passed
         if gradient_accumulation_step:
             #logger.info("[%d/%d]\tlast Verb loss: %.4f\tMean verb loss: %.4f\tAcc@1: %.2f%%\tAccMean@1: %.2f%%" %
             #            (real_iter, args.train.num_iter, action_classifier.loss.val, action_classifier.loss.avg,
@@ -230,7 +213,6 @@ def validate(model, val_loader, device, it, num_classes):
     model.train(False)
     logits = {}
 
-    # Iterate over the models
     with torch.no_grad():
         for i_val, (data, label) in enumerate(val_loader):
             label = label.to(device)

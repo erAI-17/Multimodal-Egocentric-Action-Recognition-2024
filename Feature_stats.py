@@ -69,10 +69,6 @@ def plot_actions(X, Y):
     plt.show()  
 
 def main(): 
-    """
-    I3D returns features of dimesnion: n_records (1345) x num_clips x 1 x 1014
-    This function reads saved features dimesion, applies dimensionality reduction (t-SNE) and plots features in 2D space
-    """                 
     #Use I3D_save_features.yaml                                                                        
     full_saved_features = EpicKitchensDataset(args.dataset.shift.split("-")[1], 
                                               args.modality,
@@ -93,12 +89,12 @@ def main():
     
     #Dimensionality reduction
     #*PCA
-    pca = PCA(n_components=2)
-    reduced_features = pca.fit_transform(saved_features)
+    #pca = PCA(n_components=2)
+    #reduced_features = pca.fit_transform(saved_features)
     
     #*tSNE
-    #tsne = manifold.TSNE(n_components=2, random_state=0)
-    #reduced_features = tsne.fit_transform(saved_features)
+    tsne = manifold.TSNE(n_components=2, random_state=0)
+    reduced_features = tsne.fit_transform(saved_features)
        
     #extract central frame for each record
     central_frames = (full_saved_features.model_features.stop_frame - full_saved_features.model_features.start_frame) // 2

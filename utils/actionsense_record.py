@@ -1,9 +1,5 @@
 from .video_record import VideoRecord
 class ActionSenseRecord(VideoRecord):
-    '''
-    tup: a line from one of pkl files in annotations (train_val/...)
-    dataset_conf: whole JSON "dataset" from .yaml
-    '''
     def __init__(self, tup, dataset_conf):
         self._index = str(tup[0])
         self._series = tup[1]

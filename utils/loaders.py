@@ -254,11 +254,9 @@ class ActionVisionDataset(data.Dataset, ABC):
         else:
             pickle_name = split + "_test.pkl"
 
-        #*READ ANNOTATIONS!! Action-Net/data/EMG_datapreprocessed_data
         self.list_file = pd.read_pickle(os.path.join(self.dataset_conf.annotations_path, pickle_name)) #pickle_name  #'SXY_train.pkl'
         logger.info(f"Dataloader for {split}-{self.mode} with {len(self.list_file)} samples generated")
         
-        #**each record contains its own annotation info (1 line from a file in "train_val/*.pkl") and the whole JSON "dataset" from .yaml (which contains the path where to retrieve the associated video!)
         self.record_list = [ActionSenseRecord(tup, self.dataset_conf) for tup in self.list_file.iterrows()]
         self.transform = transform  # pipeline of transforms
         self.load_feat = load_feat
@@ -282,7 +280,6 @@ class ActionVisionDataset(data.Dataset, ABC):
     def _get_train_indices(self, record, modality):
         indices = []    
         if self.dense_sampling[modality]: 
-            #*DENSE SAMPLING: equidistant frames (by self.stride) in each clip
             average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_clips
             if average_duration > 0:
                 start_indices = np.multiply(list(range(self.num_clips)), average_duration) + randint(average_duration, size=self.num_clips) #if in randint (min, max, size (how many)) if max is None, the first parameter is interpreted as max (NOT INCLUDED)
@@ -298,7 +295,6 @@ class ActionVisionDataset(data.Dataset, ABC):
                         frame_index += self.stride
                             
         else: 
-            #*UNIFORM SAMPLING: equidistant frames
             average_duration = record.num_frames[modality] // self.num_frames_per_clip[modality]
             if average_duration > 0:
                 frame_idx = np.multiply(np.arange(self.num_frames_per_clip[modality]), average_duration) + np.random.randint(average_duration, size=self.num_frames_per_clip[modality])
@@ -313,7 +309,6 @@ class ActionVisionDataset(data.Dataset, ABC):
     def _get_val_indices(self, record, modality):
         indices = []
         if self.dense_sampling[modality]: 
-        #*DENSE SAMPLING: equidistant frames (by self.stride) in each clip
             average_duration = (record.num_frames[modality] - self.num_frames_per_clip[modality] + 1) // self.num_clips
             if average_duration > 0:
                 start_indices = np.array([int(average_duration / 2.0 + average_duration * x) for x in range(self.num_clips)])
@@ -328,7 +323,6 @@ class ActionVisionDataset(data.Dataset, ABC):
                     if (frame_index+self.stride < record.end_frame):
                         frame_index += self.stride
         else: 
-            #*UNIFORM SAMPLING: equidistant frames
             average_duration = record.num_frames[modality] // self.num_frames_per_clip[modality]
             if average_duration > 0:
                 frame_idx = np.multiply(np.arange(self.num_frames_per_clip[modality]), average_duration) #+ np.random.randint(average_duration, size=self.num_frames_per_clip[modality])
@@ -343,9 +337,6 @@ class ActionVisionDataset(data.Dataset, ABC):
 
         frames = {}
         label = None
-        # record is a row of the pkl file containing one sample
-        # notice that it is already converted into a EpicVideoRecord object so that here you can access
-        # all the properties of the sample easily
         record = self.record_list[index]
 
         if self.load_feat:
@@ -360,14 +351,10 @@ class ActionVisionDataset(data.Dataset, ABC):
                 return sample, record.label
 
         segment_indices = {}
-        # notice that all indexes are sampled in the[0, sample_{num_frames}] range, then the start_index of the sample
-        # is added as an offset
         for modality in self.modalities:
             if self.mode == "train":
-                # here the training indexes are obtained with some randomization
                 segment_indices[modality] = self._get_train_indices(record, modality)
             else:
-                # here the testing indexes are obtained with no randomization, i.e., centered
                 segment_indices[modality] = self._get_val_indices(record, modality)
 
         for m in self.modalities:
