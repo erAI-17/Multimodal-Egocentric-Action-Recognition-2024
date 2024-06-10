@@ -239,16 +239,10 @@ class FUSION_net(nn.Module):
         rgb_output, rgb_feat  = self.rgb_model(x['RGB'])
         emg_output, emg_feat = self.emg_model(x['EMG'])
         
-        
-        combined_features = []
-        for level in rgb_feat.keys():
-            rgb_feat_reshaped = rgb_feat[level].reshape(-1, 10* 512) 
-            emg_feat_reshaped = emg_feat[level].reshape(-1, 100* 512)  
-            combined = torch.cat((rgb_feat_reshaped, emg_feat_reshaped), dim=1)
-            combined_features.append(combined)
+        rgb_feat_reshaped = rgb_feat_reshaped.reshape(-1, 10* 512) 
+        emg_feat_reshaped = emg_feat_reshaped.reshape(-1, 100* 512)  
+        combined = torch.cat((rgb_feat_reshaped, emg_feat_reshaped), dim=1)
 
-        avg_combined = torch.mean(torch.stack(combined_features), dim=0)
-        
-        x = F.relu(self.fc1(avg_combined))
+        x = F.relu(self.fc1(combined))
         x = self.fc2(x)
         return x, {}
