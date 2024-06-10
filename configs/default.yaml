@@ -9,7 +9,7 @@ resume_from: null # checkpoint directory
 logname: null # name of the logs
 models_dir: null # directory containing all the models
 feat_avg: ??? #if true it computes the average of the features and feed to MLP. If False, 1 logit s compute for each clip for the same record, and logits are then averaged
-fusion_modalities: True
+fusion_modalities: ???
 
 # training parameters
 train:
