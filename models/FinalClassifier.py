@@ -251,3 +251,57 @@ class FUSION_net(nn.Module):
         
         return x, {}
     
+  
+class basic_attention(nn.Module):
+    def __init__(self, feat_dim, reduction_ratio=8):
+        super(basic_attention, self).__init__()
+        self.fc1 = nn.Linear(feat_dim, feat_dim//reduction_ratio)
+        self.fc2 = nn.Linear(feat_dim//reduction_ratio, feat_dim)
+
+    def forward(self, feats):
+        attention_weights = torch.sigmoid(self.fc2(F.relu(self.fc1(feats))))
+        
+        return attention_weights
+    
+class basic_att_fusion(nn.Module):
+    def __init__(self):
+        num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
+        super(basic_att_fusion, self).__init__()
+
+        self.rgb_model = MLP() 
+        self.emg_model = MLP_EMG() 
+        
+        self.attention_rgb = basic_attention(512, reduction_ratio=8) 
+        self.attention_emg = basic_attention(512, reduction_ratio=8) 
+        
+        self.fc1 = nn.Linear(512*2, 256)   
+        self.fc2 = nn.Linear(256, 128)  
+        self.fc3 = nn.Linear(128, num_classes)  
+            
+        
+    def forward(self, x):
+        rgb_output, rgb_feat  = self.rgb_model(x['RGB']) #[32, 10, 512]
+        emg_output, emg_feat = self.emg_model(x['EMG']) #[32, 100,512]
+        
+        # Apply attention to each feature
+        rgb_attention = self.attention_rgb(rgb_feat['feat'])  # [batch_size, 10, 512]
+        emg_attention = self.attention_emg(emg_feat['feat'])  # [batch_size, 100, 512]
+
+        # Re-weight the features
+        attended_rgb_feats = rgb_attention * rgb_feat['feat']  # [batch_size, 10, 512]
+        attended_emg_feats = emg_attention * emg_feat['feat']  # [batch_size, 100, 512]
+        
+        # Aggregate the features
+        aggregated_rgb_feats = attended_rgb_feats.mean(dim=1)  # [batch_size, 512]
+        aggregated_emg_feats = attended_emg_feats.mean(dim=1)  # [batch_size, 512]
+        
+        # Concatenate the aggregated features
+        combined_feats = torch.cat((aggregated_rgb_feats, aggregated_emg_feats), dim=1)  # [batch_size, 1024]
+        
+        # Pass through fully connected layers
+        x = F.relu(self.fc1(combined_feats))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        
+        return x, {}
+    
