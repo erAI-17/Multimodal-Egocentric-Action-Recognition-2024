@@ -154,8 +154,8 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
             source_data, source_label = next(data_loader_source)
         end_t = datetime.now()
 
-        #logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
-        #            f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
+        logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
+                   f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
 
 
         #* Action recognition
@@ -173,9 +173,9 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         action_classifier.compute_accuracy(logits, source_label)
                 
         if gradient_accumulation_step:
-            #logger.info("[%d/%d]\tlast Verb loss: %.4f\tMean verb loss: %.4f\tAcc@1: %.2f%%\tAccMean@1: %.2f%%" %
-            #            (real_iter, args.train.num_iter, action_classifier.loss.val, action_classifier.loss.avg,
-            #             action_classifier.accuracy.val[1], action_classifier.accuracy.avg[1]))
+            logger.info("[%d/%d]\tlast Verb loss: %.4f\tMean verb loss: %.4f\tAcc@1: %.2f%%\tAccMean@1: %.2f%%" %
+                       (real_iter, args.train.num_iter, action_classifier.loss.val, action_classifier.loss.avg,
+                        action_classifier.accuracy.val[1], action_classifier.accuracy.avg[1]))
 
             action_classifier.check_grad()
             action_classifier.step()
