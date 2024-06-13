@@ -232,17 +232,22 @@ class FUSION_net(nn.Module):
         super(FUSION_net, self).__init__()
         self.rgb_model = MLP() 
         self.emg_model = MLP_EMG() 
-        self.fc1 = nn.Linear(10* 512 + 100* 512, 128)   #MLP_EMG=10* 512+100* 512 #LSTM_EMG: 5170= 10*512+50
-        self.fc2 = nn.Linear(128, num_classes)  
+        self.fc1 = nn.Linear(512, 256)   
+        self.fc2 = nn.Linear(256, 128)  
+        self.fc3 = nn.Linear(128, num_classes)  
 
     def forward(self, x):
-        rgb_output, rgb_feat  = self.rgb_model(x['RGB'])
-        emg_output, emg_feat = self.emg_model(x['EMG'])
+        rgb_output, rgb_feat  = self.rgb_model(x['RGB']) #[32, 10, 512]
+        emg_output, emg_feat = self.emg_model(x['EMG']) #[32, 100,512]
         
-        rgb_feat_reshaped = rgb_feat_reshaped.reshape(-1, 10* 512) 
-        emg_feat_reshaped = emg_feat_reshaped.reshape(-1, 100* 512)  
-        combined = torch.cat((rgb_feat_reshaped, emg_feat_reshaped), dim=1)
+        # Aggregate features to match dimensions
+        rgb_feat_pooled = rgb_feat['feat'].mean(dim=1)  # [batch_size, 512]
+        emg_feat_pooled = emg_feat['feat'].mean(dim=1)  # [batch_size, 512]
+        combined = rgb_feat_pooled + emg_feat_pooled
 
         x = F.relu(self.fc1(combined))
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        
         return x, {}
+    
